@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:codexa_pass/core/error/error_system.dart';
 import 'package:codexa_pass/core/logging/app_logger.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
 
@@ -12,13 +13,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Инициализируем систему логирования
   await _initializeLogging();
+
+  // Инициализируем систему ошибок
+  ErrorSystemIntegration.initialize();
+
   runApp(ProviderScope(observers: [LogInterceptor()], child: MyApp()));
 }
 
 Future<void> _initializeLogging() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   FlutterError.onError = (details) {
     AppLogger.instance.fatal('Flutter Error', details.exception, details.stack);
   };
@@ -75,11 +80,11 @@ void _testLogFileCreation() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       // Локализация
       localizationsDelegates: const [
@@ -92,6 +97,7 @@ class MyApp extends StatelessWidget {
 
       // Логирование навигации
       navigatorObservers: [LogNavigatorObserver()],
+      navigatorKey: ref.watch(navigatorKeyProvider),
 
       home: Builder(
         builder: (context) {
@@ -113,7 +119,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with ErrorHandlerMixin {
   @override
   void initState() {
     super.initState();
@@ -182,6 +188,48 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               child: const Text('Тест LogUtils.logAppInfo'),
             ),
+            SizedBox(height: 16),
+            // Добавляем кнопку для тестирования системы ошибок
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SimpleErrorTestPage(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Тест системы ошибок'),
+            ),
+
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SimpleErrorTestPage(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Тест системы ошибок'),
+            ),
+            const SizedBox(height: 16),
+            // тест ошибок _testNonCriticalError and _testCriticalError
+            ElevatedButton(
+              onPressed: _testNonCriticalError,
+              child: const Text('Тест: Некритическая ошибка'),
+            ),
+            ElevatedButton(
+              onPressed: _testCriticalError,
+              child: const Text('Тест: Критическая ошибка'),
+            ),
           ],
         ),
       ),
@@ -210,5 +258,69 @@ class _MyHomePageState extends State<MyHomePage> {
         e,
       );
     }
+  }
+
+  /// Тестирует некритическую ошибку (SnackBar)
+  void _testNonCriticalError() {
+    // Используем SafeErrorHandling для безопасной обработки
+    SafeErrorHandling.handleErrorWithContext(
+      context,
+      const AuthenticationError(
+        type: AuthenticationErrorType.invalidCredentials,
+        message: 'Тестовая ошибка аутентификации',
+        details: 'Это пример некритической ошибки для демонстрации SnackBar',
+        isCritical: false,
+      ),
+    );
+  }
+
+  /// Тестирует критическую ошибку (диалог)
+  void _testCriticalError() {
+    SafeErrorHandling.handleErrorWithContext(
+      context,
+      const EncryptionError(
+        type: EncryptionErrorType.decryptionFailed,
+        message: 'Критическая ошибка шифрования',
+        details:
+            'Это пример критической ошибки для демонстрации модального окна',
+        isCritical: true,
+      ),
+    );
+  }
+}
+
+/// Простая страница для тестирования системы ошибок
+class SimpleErrorTestPage extends StatelessWidget {
+  const SimpleErrorTestPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Тест системы ошибок')),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Система ошибок успешно интегрирована!',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Система обработки ошибок готова к использованию.\n\n'
+                'Для полного тестирования смотрите:\n'
+                '• lib/core/error/test_widget.dart\n'
+                '• lib/core/error/examples/error_examples.dart\n'
+                '• lib/core/error/QUICK_START.md',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
