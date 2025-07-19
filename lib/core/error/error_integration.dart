@@ -2,40 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:codexa_pass/core/logging/app_logger.dart';
-import 'error_system.dart';
+import 'enhanced_error_system.dart';
 
 /// Интеграция системы ошибок с основным приложением
 class ErrorSystemIntegration {
   static bool _isInitialized = false;
 
   /// Инициализирует систему ошибок
-  static void initialize() {
+  static Future<void> initialize() async {
     if (_isInitialized) return;
     _isInitialized = true;
 
-    // Перехват Flutter ошибок
+    // Инициализация новой системы ошибок
+    await ErrorHandler.instance.initialize();
+
+    // Перехват Flutter ошибок через новую систему
     FlutterError.onError = (FlutterErrorDetails details) {
-      AppLogger.instance.fatal(
-        'Flutter Error',
-        details.exception,
-        details.stack,
+      final error = UIError.widgetBuildFailed(
+        details.context?.toString() ?? 'Unknown',
+        details.exception.toString(),
       );
+      ErrorHandler.instance.handleError(error, stackTrace: details.stack);
     };
 
-    // Перехват Dart ошибок
+    // Перехват Dart ошибок через новую систему
     PlatformDispatcher.instance.onError = (error, stack) {
-      AppLogger.instance.fatal('Dart Error', error, stack);
+      final systemError = SystemError(
+        code: 'system_dart_error',
+        message: 'Системная ошибка Dart',
+        technicalDetails: error.toString(),
+        originalError: error,
+        stackTrace: stack,
+      );
+      ErrorHandler.instance.handleError(systemError, stackTrace: stack);
       return true;
     };
 
     // Настройка ErrorWidget.builder для красивых ошибок
     ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-      AppLogger.instance.error(
-        'Widget build error',
-        errorDetails.exception,
-        errorDetails.stack,
+      final error = UIError.widgetBuildFailed(
+        errorDetails.context?.toString() ?? 'Unknown',
+        errorDetails.exception.toString(),
       );
-
+      ErrorHandler.instance.handleError(error, stackTrace: errorDetails.stack);
       return ErrorWidgetDisplay(errorDetails: errorDetails);
     };
   }
@@ -86,20 +95,10 @@ class ErrorWidgetDisplay extends StatelessWidget {
 
 /// Mixin для автоматической обработки ошибок в State классах
 mixin StateErrorHandlerMixin<T extends StatefulWidget> on State<T> {
-  /// Обрабатывает ошибку через ProviderScope
-  void handleError(AppError error) {
+  /// Обрабатывает ошибку через новую систему ошибок
+  void handleError(BaseAppError error) {
     if (!mounted) return;
-
-    try {
-      final container = ProviderScope.containerOf(context);
-      container.read(errorManagerProvider.notifier).handleError(error);
-    } catch (e) {
-      // Если не можем обработать через систему ошибок, логируем
-      AppLogger.instance.error(
-        'Failed to handle error through error system',
-        e,
-      );
-    }
+    ErrorHandler.instance.handleError(error);
   }
 
   /// Безопасно выполняет setState
@@ -120,29 +119,15 @@ mixin StateErrorHandlerMixin<T extends StatefulWidget> on State<T> {
   }) async {
     if (!mounted) return;
 
-    try {
-      await operation();
-    } catch (error, stackTrace) {
-      AppLogger.instance.error(
-        'Error in ${context ?? widget.runtimeType}',
-        error,
-        stackTrace,
-      );
+    final result = await ErrorHandler.safeAsync(
+      operation,
+      errorCode: 'widget_async_operation',
+      errorMessage: 'Ошибка в ${context ?? widget.runtimeType}',
+      category: ErrorCategory.ui,
+    );
 
-      if (mounted) {
-        if (error is AppError) {
-          handleError(error);
-        } else {
-          handleError(
-            AppError.unknown(
-              message: 'Ошибка в ${context ?? widget.runtimeType}',
-              details: error.toString(),
-              originalError: error,
-              stackTrace: stackTrace,
-            ),
-          );
-        }
-      }
+    if (result.isFailure && mounted) {
+      handleError(result.error!);
     }
   }
 }
@@ -188,22 +173,17 @@ class SafeBuilder extends StatelessWidget {
   }
 }
 
-/// Провайдер для безопасного получения ошибок
-final safeErrorManagerProvider = Provider<ErrorManager?>((ref) {
-  try {
-    return ref.watch(errorManagerProvider.notifier);
-  } catch (e) {
-    AppLogger.instance.error('Error accessing ErrorManager', e);
-    return null;
-  }
+/// Провайдер для безопасного получения ErrorHandler
+final safeErrorHandlerProvider = Provider<ErrorHandler>((ref) {
+  return ErrorHandler.instance;
 });
 
 /// Утилиты для безопасной работы с системой ошибок
 class SafeErrorHandling {
   /// Безопасно обрабатывает ошибку
-  static void handleError(WidgetRef ref, AppError error) {
+  static void handleError(WidgetRef ref, BaseAppError error) {
     try {
-      ref.read(errorManagerProvider.notifier).handleError(error);
+      ref.read(safeErrorHandlerProvider).handleError(error);
     } catch (e) {
       AppLogger.instance.error('Failed to handle error safely', e);
       // Fallback - показываем простое сообщение
@@ -212,14 +192,45 @@ class SafeErrorHandling {
   }
 
   /// Безопасно обрабатывает ошибку через контекст
-  static void handleErrorWithContext(BuildContext context, AppError error) {
+  static void handleErrorWithContext(BuildContext context, BaseAppError error) {
     try {
-      final container = ProviderScope.containerOf(context);
-      container.read(errorManagerProvider.notifier).handleError(error);
+      ErrorHandler.instance.handleError(error);
     } catch (e) {
       AppLogger.instance.error('Failed to handle error with context', e);
       _showFallbackError();
     }
+  }
+
+  /// Безопасно выполняет операцию и возвращает Result
+  static Future<Result<T>> safeOperation<T>(
+    Future<T> Function() operation, {
+    String? errorCode,
+    String? errorMessage,
+    ErrorCategory category = ErrorCategory.unknown,
+  }) {
+    return ErrorHandler.safeAsync(
+      operation,
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+      category: category,
+    );
+  }
+
+  /// Безопасно выполняет операцию с таймаутом
+  static Future<Result<T>> safeOperationWithTimeout<T>(
+    Future<T> Function() operation,
+    Duration timeout, {
+    String? errorCode,
+    String? errorMessage,
+    ErrorCategory category = ErrorCategory.network,
+  }) {
+    return ErrorHandler.safeAsyncWithTimeout(
+      operation,
+      timeout,
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+      category: category,
+    );
   }
 
   static void _showFallbackError() {

@@ -5,7 +5,7 @@
 ### 1. Обновите main.dart
 
 ```dart
-import 'package:codexa_pass/core/error/error_system.dart';
+import 'package:codexa_pass/core/error/enhanced_error_system.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,20 +45,20 @@ class MyApp extends ConsumerWidget {
 ### 3. Используйте в виджетах
 
 ```dart
-class MyWidget extends ConsumerWidget with ErrorHandlerMixin {
+class MyWidget extends ConsumerWidget with StateErrorHandlerMixin {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ElevatedButton(
       onPressed: () async {
-        // Пример обработки ошибки
-        try {
-          await someRiskyOperation();
-        } catch (e) {
-          handleError(ref, AppError.unknown(
-            message: 'Произошла ошибка',
-            details: e.toString(),
-          ));
-        }
+        // Пример с Result паттерном
+        final result = await executeWithErrorHandling(() async {
+          return await someRiskyOperation();
+        });
+        
+        result.fold(
+          onSuccess: (data) => print('Успешно: $data'),
+          onError: (error) => print('Ошибка обработана автоматически'),
+        );
       },
       child: Text('Выполнить операцию'),
     );
@@ -70,41 +70,49 @@ class MyWidget extends ConsumerWidget with ErrorHandlerMixin {
 
 ### Ошибка аутентификации (SnackBar)
 ```dart
-handleError(ref, AppError.authentication(
+final error = AuthenticationError(
   type: AuthenticationErrorType.invalidCredentials,
   message: 'Неверный пароль',
-));
+);
+ref.read(errorHandlerProvider).handleError(error);
 ```
 
 ### Критическая ошибка шифрования (Диалог)
 ```dart
-handleError(ref, AppError.encryption(
+final error = EncryptionError(
   type: EncryptionErrorType.decryptionFailed,
   message: 'Не удалось расшифровать данные',
-  isCritical: true,
-));
+  severity: ErrorSeverity.critical,
+);
+ref.read(errorHandlerProvider).handleError(error);
 ```
 
 ### Ошибка валидации формы (SnackBar)
 ```dart
-handleError(ref, AppError.validation(
+final error = ValidationError(
   type: ValidationErrorType.weakPassword,
   message: 'Пароль слишком слабый',
   field: 'password',
-));
+);
+ref.read(errorHandlerProvider).handleError(error);
 ```
 
 ## 🔧 Использование Result паттерна
 
 ```dart
 // В сервисах
-class PasswordService with ErrorHandlingProviderMixin {
+class PasswordService {
+  final ErrorHandler _errorHandler;
+  
+  PasswordService(this._errorHandler);
+  
   Future<Result<String>> encryptPassword(String password) async {
-    return safeExecute(() async {
+    return _errorHandler.execute(() async {
       if (password.isEmpty) {
-        throw AppError.validation(
+        throw ValidationError(
           type: ValidationErrorType.required,
           message: 'Пароль не может быть пустым',
+          field: 'password',
         );
       }
       
@@ -114,42 +122,53 @@ class PasswordService with ErrorHandlingProviderMixin {
 }
 
 // Использование
+final passwordService = PasswordService(ref.read(errorHandlerProvider));
 final result = await passwordService.encryptPassword('mypassword');
-if (result.isSuccess) {
-  print('Зашифровано: ${result.data}');
-} else {
-  handleError(ref, result.error!);
-}
+
+result.fold(
+  onSuccess: (encryptedPassword) {
+    print('Зашифровано: $encryptedPassword');
+  },
+  onError: (error) {
+    // Ошибка уже обработана ErrorHandler'ом
+    print('Ошибка шифрования');
+  },
+);
 ```
 
 ## 📊 Автоматическая обработка в провайдерах
 
 ```dart
 final dataProvider = FutureProvider<String>((ref) async {
-  try {
+  final errorHandler = ref.read(errorHandlerProvider);
+  
+  final result = await errorHandler.execute(() async {
     return await loadData();
-  } catch (error, stackTrace) {
-    // Ошибка будет автоматически обработана в UI
-    if (error is AppError) {
-      ref.read(errorManagerProvider.notifier).handleError(error);
-    }
-    rethrow;
-  }
+  });
+  
+  return result.fold(
+    onSuccess: (data) => data,
+    onError: (error) => throw error, // Будет обработано в UI
+  );
 });
 
-// В виджете
-class DataWidget extends ConsumerWidget {
+// В виджете с миксином
+class DataWidget extends ConsumerWidget with StateErrorHandlerMixin {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(dataProvider);
     
-    // Автоматическая обработка ошибок
-    dataAsync.handleErrorInWidget(ref);
-    
+    // Автоматическая обработка ошибок через миксин
     return dataAsync.when(
       data: (data) => Text(data),
       loading: () => CircularProgressIndicator(),
-      error: (error, stack) => Text('Ошибка (детали в уведомлениях)'),
+      error: (error, stack) {
+        // Ошибка автоматически обработается через миксин
+        handleAsyncError(error, stack);
+        return ErrorRetryWidget(
+          onRetry: () => ref.invalidate(dataProvider),
+        );
+      },
     );
   }
 }
@@ -158,13 +177,31 @@ class DataWidget extends ConsumerWidget {
 ## ✅ Готово!
 
 Теперь все ошибки в вашем приложении будут:
-- ✅ Автоматически логироваться
+- ✅ Автоматически логироваться с полным контекстом
+- ✅ Типизированы для лучшей обработки
+- ✅ Обрабатываться через Result паттерн
 - ✅ Красиво отображаться пользователю
-- ✅ Предоставлять четкие инструкции по устранению
-- ✅ Различаться по критичности
+- ✅ Поддерживать retry логику и chain обработку
+
+## 🚀 Дополнительные возможности
+
+### Chain обработка ошибок
+```dart
+final result = await errorHandler
+  .withRetry(maxAttempts: 3, delay: Duration(seconds: 1))
+  .withFallback((error) => 'Резервные данные')
+  .execute(() => riskyOperation());
+```
+
+### Группировка ошибок
+```dart
+final handler = ErrorHandler()
+  .addHandler<NetworkError>((error) => showNetworkError(error))
+  .addHandler<ValidationError>((error) => showValidationError(error));
+```
 
 ## 📖 Дополнительно
 
 - Полная документация: `lib/core/error/README.md`
-- Примеры использования: `lib/core/error/examples/error_examples.dart`
-- Пример интеграции: `lib/core/error/integration_example.dart`
+- Примеры использования: `lib/core/error/examples.dart`
+- Тесты: `test/core/error/enhanced_error_system_test.dart`

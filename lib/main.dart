@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:codexa_pass/core/error/app_error.dart';
+import 'package:codexa_pass/core/error/enhanced_app_error.dart';
+import 'package:codexa_pass/core/error/error_handler.dart';
 import 'package:codexa_pass/core/error/error_system.dart';
-import 'package:codexa_pass/core/error/test_widget.dart';
+
 import 'package:codexa_pass/core/logging/app_logger.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
 
@@ -264,20 +267,7 @@ class _MyHomePageState extends State<MyHomePage> with ErrorHandlerMixin {
             ),
 
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ErrorTestWidget(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Тест системы ошибок'),
-            ),
+
             const SizedBox(height: 16),
             // тест ошибок _testNonCriticalError and _testCriticalError
             ElevatedButton(

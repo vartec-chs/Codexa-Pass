@@ -11,11 +11,8 @@
 
 library error_system;
 
-// Основные типы ошибок
-export 'app_error.dart';
-
-// Система обработки ошибок и результатов
-export 'error_handler.dart';
+// СТАРАЯ СИСТЕМА ОШИБОК (для совместимости)
+// Не импортируйте напрямую, используйте enhanced_error_system.dart
 
 // Локализация сообщений об ошибках
 export 'error_localizations.dart';
