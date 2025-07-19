@@ -4,7 +4,7 @@ import 'app_error.dart';
 import 'error_localizations.dart';
 
 /// Диалог для отображения критических ошибок
-class CriticalErrorDialog extends StatelessWidget {
+class CriticalErrorDialog extends StatefulWidget {
   final AppError error;
   final String message;
   final VoidCallback? onRetry;
@@ -17,6 +17,25 @@ class CriticalErrorDialog extends StatelessWidget {
     this.onRetry,
     required this.onClose,
   });
+
+  @override
+  State<CriticalErrorDialog> createState() => _CriticalErrorDialogState();
+}
+
+class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +124,7 @@ class CriticalErrorDialog extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            localizations.getErrorTypeTitle(error),
+                            localizations.getErrorTypeTitle(widget.error),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -123,9 +142,11 @@ class CriticalErrorDialog extends StatelessWidget {
                 // Содержимое с прокруткой
                 Flexible(
                   child: Scrollbar(
+                    controller: _scrollController,
                     thumbVisibility: true,
                     radius: const Radius.circular(8),
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       padding: const EdgeInsets.only(right: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,15 +166,16 @@ class CriticalErrorDialog extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  message,
+                                  widget.message,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                if (error.details?.isNotEmpty == true) ...[
+                                if (widget.error.details?.isNotEmpty ==
+                                    true) ...[
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Подробности: ${error.details}',
+                                    'Подробности: ${widget.error.details}',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurfaceVariant,
                                     ),
@@ -211,7 +233,9 @@ class CriticalErrorDialog extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        localizations.getErrorResolution(error),
+                                        localizations.getErrorResolution(
+                                          widget.error,
+                                        ),
                                         style: theme.textTheme.bodySmall,
                                       ),
                                     ],
@@ -235,9 +259,9 @@ class CriticalErrorDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Кнопка повтора (если доступна)
-                      if (onRetry != null) ...[
+                      if (widget.onRetry != null) ...[
                         FilledButton.icon(
-                          onPressed: onRetry,
+                          onPressed: widget.onRetry,
                           icon: const Icon(Icons.refresh, size: 16),
                           label: const Text('Повторить'),
                           style: FilledButton.styleFrom(
@@ -267,7 +291,7 @@ class CriticalErrorDialog extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: FilledButton(
-                              onPressed: onClose,
+                              onPressed: widget.onClose,
                               child: const Text('Закрыть'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: theme.colorScheme.error,
@@ -300,9 +324,9 @@ class CriticalErrorDialog extends StatelessWidget {
                       const SizedBox(width: 8),
 
                       // Кнопка повтора (если доступна)
-                      if (onRetry != null) ...[
+                      if (widget.onRetry != null) ...[
                         FilledButton.icon(
-                          onPressed: onRetry,
+                          onPressed: widget.onRetry,
                           icon: const Icon(Icons.refresh, size: 16),
                           label: const Text('Повторить'),
                           style: FilledButton.styleFrom(
@@ -319,7 +343,7 @@ class CriticalErrorDialog extends StatelessWidget {
 
                       // Кнопка закрытия
                       FilledButton(
-                        onPressed: onClose,
+                        onPressed: widget.onClose,
                         child: const Text('Закрыть'),
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.error,
@@ -344,9 +368,9 @@ class CriticalErrorDialog extends StatelessWidget {
     const localizations = ErrorLocalizations();
     final details =
         '''
-Тип ошибки: ${localizations.getErrorTypeTitle(error)}
-Сообщение: $message
-${error.details != null ? 'Подробности: ${error.details}' : ''}
+Тип ошибки: ${localizations.getErrorTypeTitle(widget.error)}
+Сообщение: ${widget.message}
+${widget.error.details != null ? 'Подробности: ${widget.error.details}' : ''}
 Время: ${DateTime.now().toIso8601String()}
 ''';
 
@@ -362,10 +386,29 @@ ${error.details != null ? 'Подробности: ${error.details}' : ''}
 }
 
 /// Диалог для отображения подробностей ошибки
-class ErrorDetailsDialog extends StatelessWidget {
+class ErrorDetailsDialog extends StatefulWidget {
   final AppError error;
 
   const ErrorDetailsDialog({super.key, required this.error});
+
+  @override
+  State<ErrorDetailsDialog> createState() => _ErrorDetailsDialogState();
+}
+
+class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -450,35 +493,39 @@ class ErrorDetailsDialog extends StatelessWidget {
                 // Содержимое с прокруткой
                 Expanded(
                   child: Scrollbar(
+                    controller: _scrollController,
                     thumbVisibility: true,
                     radius: const Radius.circular(8),
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       padding: const EdgeInsets.only(right: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildDetailSection(
                             'Тип ошибки',
-                            localizations.getErrorTypeTitle(error),
+                            localizations.getErrorTypeTitle(widget.error),
                             theme,
                           ),
 
                           _buildDetailSection(
                             'Сообщение',
-                            localizations.getLocalizedMessage(error),
+                            localizations.getLocalizedMessage(widget.error),
                             theme,
                           ),
 
-                          if (error.details?.isNotEmpty == true)
+                          if (widget.error.details?.isNotEmpty == true)
                             _buildDetailSection(
                               'Подробности',
-                              error.details!,
+                              widget.error.details!,
                               theme,
                             ),
 
                           _buildDetailSection(
                             'Критичность',
-                            error.isCritical ? 'Критическая' : 'Некритическая',
+                            widget.error.isCritical
+                                ? 'Критическая'
+                                : 'Некритическая',
                             theme,
                           ),
 
@@ -490,12 +537,12 @@ class ErrorDetailsDialog extends StatelessWidget {
 
                           _buildDetailSection(
                             'Рекомендации',
-                            localizations.getErrorResolution(error),
+                            localizations.getErrorResolution(widget.error),
                             theme,
                           ),
 
                           // Техническая информация (если есть)
-                          if (error is UnknownError) ...[
+                          if (widget.error is UnknownError) ...[
                             const SizedBox(height: 16),
                             const Divider(),
                             const SizedBox(height: 16),
@@ -510,18 +557,21 @@ class ErrorDetailsDialog extends StatelessWidget {
 
                             const SizedBox(height: 8),
 
-                            if ((error as UnknownError).originalError != null)
+                            if ((widget.error as UnknownError).originalError !=
+                                null)
                               _buildDetailSection(
                                 'Исходная ошибка',
-                                (error as UnknownError).originalError
+                                (widget.error as UnknownError).originalError
                                     .toString(),
                                 theme,
                               ),
 
-                            if ((error as UnknownError).stackTrace != null)
+                            if ((widget.error as UnknownError).stackTrace !=
+                                null)
                               _buildDetailSection(
                                 'Стек вызовов',
-                                (error as UnknownError).stackTrace.toString(),
+                                (widget.error as UnknownError).stackTrace
+                                    .toString(),
                                 theme,
                               ),
                           ],
@@ -606,21 +656,25 @@ class ErrorDetailsDialog extends StatelessWidget {
     final buffer = StringBuffer();
 
     buffer.writeln('=== ДЕТАЛИ ОШИБКИ ===');
-    buffer.writeln('Тип: ${localizations.getErrorTypeTitle(error)}');
-    buffer.writeln('Сообщение: ${localizations.getLocalizedMessage(error)}');
+    buffer.writeln('Тип: ${localizations.getErrorTypeTitle(widget.error)}');
+    buffer.writeln(
+      'Сообщение: ${localizations.getLocalizedMessage(widget.error)}',
+    );
 
-    if (error.details?.isNotEmpty == true) {
-      buffer.writeln('Подробности: ${error.details}');
+    if (widget.error.details?.isNotEmpty == true) {
+      buffer.writeln('Подробности: ${widget.error.details}');
     }
 
     buffer.writeln(
-      'Критичность: ${error.isCritical ? 'Критическая' : 'Некритическая'}',
+      'Критичность: ${widget.error.isCritical ? 'Критическая' : 'Некритическая'}',
     );
     buffer.writeln('Время: ${DateTime.now().toIso8601String()}');
-    buffer.writeln('Рекомендации: ${localizations.getErrorResolution(error)}');
+    buffer.writeln(
+      'Рекомендации: ${localizations.getErrorResolution(widget.error)}',
+    );
 
-    if (error is UnknownError) {
-      final unknownError = error as UnknownError;
+    if (widget.error is UnknownError) {
+      final unknownError = widget.error as UnknownError;
       if (unknownError.originalError != null) {
         buffer.writeln('\n=== ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯ ===');
         buffer.writeln('Исходная ошибка: ${unknownError.originalError}');
