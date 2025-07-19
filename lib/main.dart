@@ -27,22 +27,60 @@ Future<void> main() async {
 Future<void> _initializeLogging() async {
   FlutterError.onError = (details) {
     AppLogger.instance.fatal('Flutter Error', details.exception, details.stack);
+    // Создаем краш-репорт для Flutter ошибок
+    LogUtils.reportFlutterCrash(
+      'Flutter Framework Error',
+      details.exception,
+      details.stack ?? StackTrace.current,
+      additionalInfo: {
+        'library': details.library,
+        'context': details.context?.toString(),
+        'informationCollector': details.informationCollector?.toString(),
+      },
+    );
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
     AppLogger.instance.fatal('Dart Error', error, stack);
+    // Создаем краш-репорт для Dart ошибок
+    LogUtils.reportDartCrash(
+      'Dart Runtime Error',
+      error,
+      stack,
+      additionalInfo: {
+        'isolate': 'main',
+        'errorType': error.runtimeType.toString(),
+      },
+    );
     return true;
   };
 
-  // Создаем экземпляр логгера и ждем его инициализации
-  final logger = AppLogger.instance;
+  // Инициализируем систему логирования с системной информацией
+  try {
+    // Быстрая инициализация для немедленного начала логирования
+    LoggerInitializer.initializeQuick();
 
-  // Ждем инициализации файлового вывода
-  await logger.waitForInitialization();
+    // Создаем экземпляр логгера и ждем его инициализации
+    final logger = AppLogger.instance;
+    await logger.waitForInitialization();
 
-  // Теперь можем безопасно логировать
-  LogUtils.logAppInfo();
-  AppLogger.instance.info('Система логирования запущена');
+    // Инициализируем системную информацию
+    await LogUtils.initializeSystemInfo();
+
+    // Логируем начало сессии с расширенной информацией
+    await LogUtils.logSessionStart();
+
+    AppLogger.instance.info('✅ Система логирования полностью инициализирована');
+  } catch (e, stackTrace) {
+    // Fallback на старую систему в случае ошибки
+    AppLogger.instance.error(
+      '❌ Ошибка инициализации расширенного логирования',
+      e,
+      stackTrace,
+    );
+    LogUtils.logAppInfo(); // Используем старый метод как запасной
+    AppLogger.instance.info('⚠️ Система логирования запущена в базовом режиме');
+  }
 
   // Тестируем создание файла лога
   _testLogFileCreation();
@@ -102,8 +140,26 @@ class MyApp extends ConsumerWidget {
 
       home: Builder(
         builder: (context) {
-          // Инициализация многоязычности
-          LoggerInitializer.initializeWithContext(context);
+          // Полная инициализация логгера с контекстом локализации
+          // Выполняется асинхронно, чтобы не блокировать UI
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            LoggerInitializer.initializeComplete(context: context)
+                .then((_) {
+                  AppLogger.instance.info(
+                    '🎯 Полная инициализация логгера завершена',
+                  );
+                  LogUtils.logEnvironmentInfo();
+                })
+                .catchError((e) {
+                  AppLogger.instance.error(
+                    '❌ Ошибка полной инициализации логгера',
+                    e,
+                  );
+                  // Fallback на простую инициализацию
+                  LoggerInitializer.initializeWithContext(context);
+                });
+          });
+
           return const MyHomePage(title: 'Flutter Demo Home Page');
         },
       ),
@@ -124,15 +180,16 @@ class _MyHomePageState extends State<MyHomePage> with ErrorHandlerMixin {
   @override
   void initState() {
     super.initState();
-    // Инициализация логгера без контекста
-    LoggerInitializer.initialize();
+    // Базовая инициализация логгера уже выполнена в main()
+    // Дополнительная инициализация будет выполнена в MyApp
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Установка контекста для локализации после получения context
-    LoggerInitializer.initializeWithContext(context);
+    // Полная инициализация уже выполняется в MyApp с постфреймовым колбэком
+    // Здесь можно добавить специфичную для данной страницы логику
+    LogUtils.logUserAction('Открытие главной страницы');
   }
 
   @override

@@ -44,6 +44,8 @@ dependencies:
   go_router: ^16.0.0
   go_transitions: ^0.8.2
 
+  dio: ^5.8.0+1
+
 
   flutter_localizations:
     sdk: flutter
@@ -65,6 +67,9 @@ dependencies:
   path_provider_linux: ^2.2.1
   path_provider_foundation: ^2.4.1
   path: ^1.9.1
+
+  package_info_plus: ^8.3.0
+  device_info_plus: ^11.5.0
 
 dev_dependencies:
   flutter_test:
