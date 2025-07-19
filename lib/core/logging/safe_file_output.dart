@@ -170,6 +170,7 @@ class SafeFileOutput extends LogOutput {
     if (_pendingLogs.isNotEmpty && _file != null) {
       try {
         for (final logEntry in _pendingLogs) {
+          // Логи уже очищены от ANSI кодов при добавлении в pending
           await _file!.writeAsString(logEntry, mode: FileMode.append);
         }
         _pendingLogs.clear();
@@ -185,7 +186,10 @@ class SafeFileOutput extends LogOutput {
   void output(OutputEvent event) {
     final String logEntry = event.lines.join('\n');
     final String timestamp = DateTime.now().toIso8601String();
-    final String formattedEntry = '[$timestamp] $logEntry\n';
+
+    // Удаляем ANSI escape-коды из лога для файла
+    final String cleanLogEntry = _removeAnsiEscapeCodes(logEntry);
+    final String formattedEntry = '[$timestamp] $cleanLogEntry\n';
 
     if (_isInitialized && _file != null) {
       try {
@@ -196,16 +200,23 @@ class SafeFileOutput extends LogOutput {
         // Если не удалось записать, добавляем в pending и выводим в консоль
         _pendingLogs.add(formattedEntry);
         if (kDebugMode) {
-          print('LOG (write failed, cached): $logEntry');
+          print('LOG (write failed, cached): $cleanLogEntry');
         }
       }
     } else {
       // Если ещё не инициализированы, кешируем лог
       _pendingLogs.add(formattedEntry);
       if (kDebugMode) {
-        print('LOG (cached): $logEntry');
+        print('LOG (cached): $cleanLogEntry');
       }
     }
+  }
+
+  /// Удаляет ANSI escape-коды из строки
+  String _removeAnsiEscapeCodes(String text) {
+    // Улучшенное регулярное выражение для удаления всех ANSI escape-кодов
+    final ansiRegex = RegExp(r'\x1B\[[0-9;]*[a-zA-Z]');
+    return text.replaceAll(ansiRegex, '');
   }
 
   bool get isInitialized => _isInitialized;

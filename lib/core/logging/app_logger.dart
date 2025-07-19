@@ -28,7 +28,28 @@ class AppLogPrinter extends LogPrinter {
   }
 }
 
-/// Файловый вывод для логгера
+/// Простой принтер для файлового вывода без цветов и форматирования
+class SimpleFilePrinter extends LogPrinter {
+  @override
+  List<String> log(LogEvent event) {
+    final String time = DateTime.now().toString();
+    final String level = event.level.name.toUpperCase();
+    final String message = event.message.toString();
+
+    String result = '[$time] [$level] $message';
+
+    if (event.error != null) {
+      result += '\nError: ${event.error}';
+    }
+
+    if (event.stackTrace != null) {
+      result += '\nStack trace:\n${event.stackTrace}';
+    }
+
+    return [result];
+  }
+}
+
 class FileOutput extends LogOutput {
   File? _file;
   final int _maxFileSizeMB;
@@ -191,8 +212,12 @@ class FileOutput extends LogOutput {
       if (_isInitialized && _file != null) {
         final String logEntry = event.lines.join('\n');
         final String timestamp = DateTime.now().toIso8601String();
+
+        // Удаляем ANSI escape-коды из лога для файла
+        final String cleanLogEntry = _removeAnsiEscapeCodes(logEntry);
+
         _file!.writeAsStringSync(
-          '[$timestamp] $logEntry\n',
+          '[$timestamp] $cleanLogEntry\n',
           mode: FileMode.append,
         );
       } else if (!_isInitialized) {
@@ -209,6 +234,13 @@ class FileOutput extends LogOutput {
         print(errorMessage);
       }
     }
+  }
+
+  /// Удаляет ANSI escape-коды из строки
+  String _removeAnsiEscapeCodes(String text) {
+    // Улучшенное регулярное выражение для удаления всех ANSI escape-кодов
+    final ansiRegex = RegExp(r'\x1B\[[0-9;]*[a-zA-Z]');
+    return text.replaceAll(ansiRegex, '');
   }
 }
 

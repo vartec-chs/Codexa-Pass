@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'lib/core/logging/app_logger.dart';
-import 'lib/core/logging/log_utils.dart';
+import '../lib/core/logging/app_logger.dart';
+import '../lib/core/logging/log_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
