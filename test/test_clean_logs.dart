@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:codexa_pass/app/logging/app_logger.dart';
-import 'package:codexa_pass/app/logging/log_utils.dart';
+import 'package:codexa_pass/core/logging/app_logger.dart';
+import 'package:codexa_pass/core/logging/log_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

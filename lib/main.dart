@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:codexa_pass/app/logging/app_logger.dart';
-import 'package:codexa_pass/app/logging/logging.dart';
+import 'package:codexa_pass/core/logging/app_logger.dart';
+import 'package:codexa_pass/core/logging/logging.dart';
 
 import 'package:codexa_pass/generated/l10n.dart';
 import 'package:flutter/material.dart';
