@@ -11,6 +11,11 @@ class AppConstants {
   static const isDebug = true;
   static const isRelease = false;
 
+  // logging
+  static const String logPath = 'Codexa/logs';
+  static const int maxLogFileSizeMB = 10; // Maximum log file size in MB
+  static const int maxLogFiles = 5; // Maximum number of log files to keep
+
   // Window options
   static const Size defaultWindowSize = Size(600, 500);
   static const Size minWindowSize = Size(400, 500);

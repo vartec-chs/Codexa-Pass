@@ -1,1 +1,55 @@
-{}
+{
+  "@@locale": "en",
+  "logErrorInitFile": "Error initializing log file: {error}",
+  "@logErrorInitFile": {
+    "description": "Error message when log file initialization fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorRotation": "Error rotating logs: {error}",
+  "@logErrorRotation": {
+    "description": "Error message when log rotation fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorDeletingOldFile": "Error deleting old log file: {error}",
+  "@logErrorDeletingOldFile": {
+    "description": "Error message when deleting old log file fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorWritingToFile": "Error writing to log file: {error}",
+  "@logErrorWritingToFile": {
+    "description": "Error message when writing to log file fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorGettingDirectory": "Error getting log directory",
+  "@logErrorGettingDirectory": {
+    "description": "Error message when getting log directory fails"
+  },
+  "logErrorGettingFileList": "Error getting log file list",
+  "@logErrorGettingFileList": {
+    "description": "Error message when getting log file list fails"
+  },
+  "logAllFilesCleared": "All log files cleared",
+  "@logAllFilesCleared": {
+    "description": "Message when all log files are cleared"
+  },
+  "logErrorClearingFiles": "Error clearing log files",
+  "@logErrorClearingFiles": {
+    "description": "Error message when clearing log files fails"
+  }
+}

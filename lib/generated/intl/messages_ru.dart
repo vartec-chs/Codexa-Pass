@@ -20,6 +20,31 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'ru';
 
+  static String m0(error) => "Ошибка удаления старого лог-файла: ${error}";
+
+  static String m1(error) => "Ошибка инициализации файла логов: ${error}";
+
+  static String m2(error) => "Ошибка ротации логов: ${error}";
+
+  static String m3(error) => "Ошибка записи в лог-файл: ${error}";
+
   final messages = _notInlinedMessages(_notInlinedMessages);
-  static Map<String, Function> _notInlinedMessages(_) => <String, Function>{};
+  static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "logAllFilesCleared": MessageLookupByLibrary.simpleMessage(
+      "Все лог-файлы очищены",
+    ),
+    "logErrorClearingFiles": MessageLookupByLibrary.simpleMessage(
+      "Ошибка очистки лог-файлов",
+    ),
+    "logErrorDeletingOldFile": m0,
+    "logErrorGettingDirectory": MessageLookupByLibrary.simpleMessage(
+      "Ошибка получения директории логов",
+    ),
+    "logErrorGettingFileList": MessageLookupByLibrary.simpleMessage(
+      "Ошибка получения списка лог-файлов",
+    ),
+    "logErrorInitFile": m1,
+    "logErrorRotation": m2,
+    "logErrorWritingToFile": m3,
+  };
 }

@@ -1,1 +1,55 @@
-{}
+{
+  "@@locale": "ru",
+  "logErrorInitFile": "Ошибка инициализации файла логов: {error}",
+  "@logErrorInitFile": {
+    "description": "Сообщение об ошибке при инициализации файла логов",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorRotation": "Ошибка ротации логов: {error}",
+  "@logErrorRotation": {
+    "description": "Сообщение об ошибке при ротации логов",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorDeletingOldFile": "Ошибка удаления старого лог-файла: {error}",
+  "@logErrorDeletingOldFile": {
+    "description": "Сообщение об ошибке при удалении старого лог-файла",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorWritingToFile": "Ошибка записи в лог-файл: {error}",
+  "@logErrorWritingToFile": {
+    "description": "Сообщение об ошибке при записи в лог-файл",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "logErrorGettingDirectory": "Ошибка получения директории логов",
+  "@logErrorGettingDirectory": {
+    "description": "Сообщение об ошибке при получении директории логов"
+  },
+  "logErrorGettingFileList": "Ошибка получения списка лог-файлов",
+  "@logErrorGettingFileList": {
+    "description": "Сообщение об ошибке при получении списка лог-файлов"
+  },
+  "logAllFilesCleared": "Все лог-файлы очищены",
+  "@logAllFilesCleared": {
+    "description": "Сообщение о том, что все лог-файлы очищены"
+  },
+  "logErrorClearingFiles": "Ошибка очистки лог-файлов",
+  "@logErrorClearingFiles": {
+    "description": "Сообщение об ошибке при очистке лог-файлов"
+  }
+}
