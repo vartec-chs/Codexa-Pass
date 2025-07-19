@@ -270,19 +270,52 @@ class ErrorManager extends StateNotifier<ErrorManagerState> {
     if (!context.mounted) return;
 
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: ErrorSnackBarContent(error: error, message: message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'Подробнее',
-            textColor: Theme.of(context).colorScheme.onError,
-            onPressed: () => _showErrorDetails(context, error),
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isSmallScreen = screenWidth < 400;
+
+      if (isSmallScreen) {
+        // На маленьких экранах показываем SnackBar без кнопки действия
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: GestureDetector(
+              onTap: () => _showErrorDetails(context, error),
+              child: ErrorSnackBarContent(
+                error: error,
+                message: message,
+                showTapHint: true, // Показываем подсказку о нажатии
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5), // Больше времени для чтения
+            margin: EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: MediaQuery.of(context).viewInsets.bottom + 8,
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        // На больших экранах показываем с кнопкой
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: ErrorSnackBarContent(error: error, message: message),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Подробнее',
+              textColor: Theme.of(context).colorScheme.onError,
+              onPressed: () => _showErrorDetails(context, error),
+            ),
+          ),
+        );
+      }
     } catch (e) {
       AppLogger.instance.error('Failed to show error snackbar', e);
     }

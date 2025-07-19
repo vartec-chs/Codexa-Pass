@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:codexa_pass/core/error/error_system.dart';
+import 'package:codexa_pass/core/error/test_widget.dart';
 import 'package:codexa_pass/core/logging/app_logger.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
 
@@ -210,7 +211,7 @@ class _MyHomePageState extends State<MyHomePage> with ErrorHandlerMixin {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const SimpleErrorTestPage(),
+                    builder: (context) => const ErrorTestWidget(),
                   ),
                 );
               },

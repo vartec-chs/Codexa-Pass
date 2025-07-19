@@ -699,11 +699,13 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
 class ErrorSnackBarContent extends StatelessWidget {
   final AppError error;
   final String message;
+  final bool showTapHint;
 
   const ErrorSnackBarContent({
     super.key,
     required this.error,
     required this.message,
+    this.showTapHint = false,
   });
 
   @override
@@ -712,7 +714,7 @@ class ErrorSnackBarContent extends StatelessWidget {
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -729,7 +731,18 @@ class ErrorSnackBarContent extends StatelessWidget {
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
+          // Дополнительная тень для нажимаемых элементов
+          if (showTapHint && isSmallScreen)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
         ],
+        // Добавляем тонкую белую границу для нажимаемых элементов
+        border: showTapHint && isSmallScreen
+            ? Border.all(color: Colors.white.withOpacity(0.3), width: 0.5)
+            : null,
       ),
       child: Row(
         children: [
@@ -771,6 +784,28 @@ class ErrorSnackBarContent extends StatelessWidget {
                   maxLines: isSmallScreen ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                // Показываем подсказку о нажатии на маленьких экранах
+                if (showTapHint && isSmallScreen) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.touch_app,
+                        color: Colors.white.withOpacity(0.7),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Нажмите для подробностей',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 10,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
