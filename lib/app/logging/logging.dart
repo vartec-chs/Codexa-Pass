@@ -1,5 +1,5 @@
 /// Экспорт всех компонентов системы логирования
-library core_logging;
+library;
 
 export 'app_logger.dart';
 export 'log_interceptor.dart';

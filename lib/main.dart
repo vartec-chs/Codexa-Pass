@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:codexa_pass/core/logging/app_logger.dart';
-import 'package:codexa_pass/core/logging/logging.dart';
+import 'package:codexa_pass/app/logging/app_logger.dart';
+import 'package:codexa_pass/app/logging/logging.dart';
 
 import 'package:codexa_pass/generated/l10n.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +68,7 @@ void _testLogFileCreation() async {
       for (final file in logFiles) {
         if (await file.exists()) {
           final size = await file.length();
-          print('  ${file.path} (${size} bytes)');
+          print('  ${file.path} ($size bytes)');
         }
       }
     });
@@ -76,6 +76,8 @@ void _testLogFileCreation() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

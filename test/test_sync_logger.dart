@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import '../lib/core/logging/app_logger.dart';
-import '../lib/core/logging/log_utils.dart';
+import 'package:codexa_pass/app/logging/app_logger.dart';
+import 'package:codexa_pass/app/logging/log_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +44,7 @@ void main() async {
   for (final file in logFiles) {
     if (await file.exists()) {
       final size = await file.length();
-      print('   📄 ${file.path} (${size} байт)');
+      print('   📄 ${file.path} ($size байт)');
 
       if (size > 0) {
         final content = await file.readAsString();

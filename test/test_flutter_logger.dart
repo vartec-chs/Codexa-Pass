@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../lib/core/logging/app_logger.dart';
+import 'package:codexa_pass/app/logging/app_logger.dart';
 
 void main() async {
   // Инициализируем Flutter bindings
