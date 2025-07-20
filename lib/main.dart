@@ -1,11 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
-// Новая система ошибок v2
-import 'package:codexa_pass/core/error_v2/error_system_v2.dart';
-
-import 'package:codexa_pass/core/logging/logging.dart';
 import 'package:codexa_pass/generated/l10n.dart';
+import 'package:codexa_pass/core/logging/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,746 +10,222 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Инициализируем систему логирования
+  // Инициализируем систему логгирования
   await _initializeLogging();
 
-  // Инициализируем новую систему ошибок v2
-  await _initializeErrorSystemV2();
+  // Настраиваем observer для автоматического логирования состояний Riverpod
+  final container = ProviderContainer(observers: [LoggingProviderObserver()]);
 
-  runApp(ProviderScope(observers: [LogInterceptor()], child: MyApp()));
+  // Логируем запуск приложения
+  AppLifecycleLogger.logAppStart();
+
+  runApp(UncontrolledProviderScope(container: container, child: MyApp()));
 }
 
-/// Инициализация новой системы ошибок v2
-Future<void> _initializeErrorSystemV2() async {
-  try {
-    // Создаем и настраиваем глобальный обработчик ошибок
-    final errorHandler = ErrorHandlerV2(
-      logger: CustomErrorLoggerV2(),
-      analytics: CustomErrorAnalyticsV2(),
-      notification: CustomErrorNotificationV2(),
-      recoveryHandlers: [AuthRecoveryHandlerV2(), NetworkRecoveryHandlerV2()],
-    );
-
-    // Устанавливаем как глобальный обработчик
-    setGlobalErrorHandler(errorHandler);
-
-    // Настраиваем локализацию ошибок
-    setGlobalLocalizer(DefaultErrorLocalizerV2());
-
-    AppLogger.instance.info('✅ Система ошибок v2 успешно инициализирована');
-  } catch (e, stackTrace) {
-    AppLogger.instance.error(
-      '❌ Ошибка инициализации системы ошибок v2',
-      e,
-      stackTrace,
-    );
-  }
-}
-
-/// Реализация логгера для системы ошибок v2
-class CustomErrorLoggerV2 implements ErrorLoggerV2 {
-  @override
-  Future<void> logError(AppErrorV2 error) async {
-    AppLogger.instance.error(
-      'ErrorV2: ${error.localizedMessage}',
-      error.originalError,
-      error.stackTrace,
-    );
-  }
-
-  @override
-  Future<void> logInfo(String message, {Map<String, Object?>? context}) async {
-    AppLogger.instance.info('ErrorV2 Info: $message');
-  }
-
-  @override
-  Future<void> logWarning(
-    String message, {
-    Map<String, Object?>? context,
-  }) async {
-    AppLogger.instance.warning('ErrorV2 Warning: $message');
-  }
-}
-
-/// Реализация аналитики для системы ошибок v2
-class CustomErrorAnalyticsV2 implements ErrorAnalyticsV2 {
-  @override
-  Future<void> trackError(
-    AppErrorV2 error,
-    ErrorAnalyticsData analyticsData,
-  ) async {
-    AppLogger.instance.info('Analytics: Error tracked - ${error.id}');
-  }
-
-  @override
-  Future<void> trackRecovery(AppErrorV2 error, bool successful) async {
-    AppLogger.instance.info(
-      'Analytics: Recovery ${successful ? 'successful' : 'failed'} for ${error.id}',
-    );
-  }
-
-  @override
-  Future<void> trackRetry(AppErrorV2 error, int attemptNumber) async {
-    AppLogger.instance.info(
-      'Analytics: Retry attempt $attemptNumber for ${error.id}',
-    );
-  }
-}
-
-/// Реализация уведомлений для системы ошибок v2
-class CustomErrorNotificationV2 implements ErrorNotificationV2 {
-  @override
-  Future<void> showError(AppErrorV2 error) async {
-    AppLogger.instance.info(
-      'Notification: Showing error - ${error.localizedMessage}',
-    );
-  }
-
-  @override
-  Future<void> showRecoverySuccess(AppErrorV2 error) async {
-    AppLogger.instance.info(
-      'Notification: Recovery successful for ${error.id}',
-    );
-  }
-
-  @override
-  Future<void> showRecoveryFailure(AppErrorV2 error) async {
-    AppLogger.instance.info('Notification: Recovery failed for ${error.id}');
-  }
-}
-
+/// Инициализация системы логгирования
 Future<void> _initializeLogging() async {
-  FlutterError.onError = (details) {
-    AppLogger.instance.fatal('Flutter Error', details.exception, details.stack);
-    // Создаем краш-репорт для Flutter ошибок
-    LogUtils.reportFlutterCrash(
-      'Flutter Framework Error',
-      details.exception,
-      details.stack ?? StackTrace.current,
-      additionalInfo: {
-        'library': details.library,
-        'context': details.context?.toString(),
-        'informationCollector': details.informationCollector?.toString(),
-      },
-    );
-  };
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    AppLogger.instance.fatal('Dart Error', error, stack);
-    // Создаем краш-репорт для Dart ошибок
-    LogUtils.reportDartCrash(
-      'Dart Runtime Error',
-      error,
-      stack,
-      additionalInfo: {
-        'isolate': 'main',
-        'errorType': error.runtimeType.toString(),
-      },
-    );
-    return true;
-  };
-
-  // Инициализируем систему логирования с системной информацией
   try {
-    // Быстрая инициализация для немедленного начала логирования
-    LoggerInitializer.initializeQuick();
-
-    // Создаем экземпляр логгера и ждем его инициализации
-    final logger = AppLogger.instance;
-    await logger.waitForInitialization();
-
-    // Инициализируем системную информацию
-    await LogUtils.initializeSystemInfo();
-
-    // Логируем начало сессии с расширенной информацией
-    await LogUtils.logSessionStart();
-
-    AppLogger.instance.info('✅ Система логирования полностью инициализирована');
-  } catch (e, stackTrace) {
-    // Fallback на старую систему в случае ошибки
-    AppLogger.instance.error(
-      '❌ Ошибка инициализации расширенного логирования',
-      e,
-      stackTrace,
+    // Создаем конфигурацию в зависимости от режима сборки
+    final config = LoggerConfig(
+      minLevel: kDebugMode ? LogLevel.debug : LogLevel.info,
+      enableConsole: true,
+      enableFile: true,
+      enableCrashReports: kReleaseMode, // Только в release режиме
+      maxFileSizeMB: 100,
+      maxFileAgeDays: 30,
+      enablePrettyPrint: kDebugMode,
+      enableColors: kDebugMode,
+      enableMetadata: true,
+      maskSensitiveData: true,
+      // В продакшене логируем только критичные модули
+      enabledModules: kReleaseMode
+          ? {'Auth', 'Encryption', 'Storage', 'Security'}
+          : null,
+      // Настраиваем уровни для модулей
+      moduleLogLevels: {
+        'Auth': LogLevel.info,
+        'Encryption': LogLevel.warning,
+        'Storage': LogLevel.info,
+        'Security': LogLevel.warning,
+        'UI': kDebugMode ? LogLevel.debug : LogLevel.warning,
+        'Network': LogLevel.info,
+      },
     );
-    LogUtils.logAppInfo(); // Используем старый метод как запасной
-    AppLogger.instance.info('⚠️ Система логирования запущена в базовом режиме');
-  }
 
-  // Тестируем создание файла лога
-  _testLogFileCreation();
-}
+    // Инициализируем логгер
+    await AppLogger.instance.initialize(config: config);
 
-void _testLogFileCreation() async {
-  final logger = AppLogger.instance;
-
-  // Даем время на инициализацию
-  await Future.delayed(Duration(seconds: 2));
-
-  if (kDebugMode) {
-    print('=== TEST LOG FILE CREATION ===');
-    print('File logging ready: ${logger.isFileLoggingReady}');
-
-    final logDir = await logger.getLogDirectory();
-    print('Log directory: $logDir');
-
-    // Записываем тестовые сообщения
-    logger.debug('🔍 Тестовое debug сообщение');
-    logger.info('ℹ️ Тестовое info сообщение');
-    logger.warning('⚠️ Тестовое warning сообщение');
-    logger.error('❌ Тестовое error сообщение');
-
-    // Проверяем файлы после небольшой задержки
-    Timer(Duration(seconds: 3), () async {
-      final logFiles = await logger.getLogFiles();
-      print('Found ${logFiles.length} log files:');
-      for (final file in logFiles) {
-        if (await file.exists()) {
-          final size = await file.length();
-          print('  ${file.path} ($size bytes)');
-        }
-      }
-    });
+    // Логируем успешную инициализацию
+    await AppLogger.instance.info(
+      'Codexa Pass started successfully',
+      logger: 'Main',
+      metadata: {
+        'environment': kDebugMode ? 'development' : 'production',
+        'sessionId': AppLogger.instance.sessionId,
+        'flutterVersion': const String.fromEnvironment(
+          'flutter.version',
+          defaultValue: 'unknown',
+        ),
+      },
+    );
+  } catch (e, stackTrace) {
+    // Если логгер не удалось инициализировать, выводим в консоль
+    debugPrint('Failed to initialize logging system: $e');
+    debugPrint('StackTrace: $stackTrace');
   }
 }
 
 class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      // Локализация
+      title: 'Codexa Pass',
       localizationsDelegates: const [
-        S.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
+        S.delegate,
       ],
       supportedLocales: S.delegate.supportedLocales,
-
-      // Логирование навигации
-      navigatorObservers: [LogNavigatorObserver()],
-
-      home: Builder(
-        builder: (context) {
-          // Полная инициализация логгера с контекстом локализации
-          // Выполняется асинхронно, чтобы не блокировать UI
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            LoggerInitializer.initializeComplete(context: context)
-                .then((_) {
-                  AppLogger.instance.info(
-                    '🎯 Полная инициализация логгера завершена',
-                  );
-                  LogUtils.logEnvironmentInfo();
-                })
-                .catchError((e) {
-                  AppLogger.instance.error(
-                    '❌ Ошибка полной инициализации логгера',
-                    e,
-                  );
-                  // Fallback на простую инициализацию
-                  LoggerInitializer.initializeWithContext(context);
-                });
-          });
-
-          return const MyHomePage(title: 'Flutter Demo Home Page');
-        },
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const MyHomePage(),
+      // Логируем навигацию
+      navigatorObservers: [LoggingNavigatorObserver()],
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class MyHomePage extends ConsumerStatefulWidget {
+  const MyHomePage({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  ConsumerState<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends ConsumerState<MyHomePage>
+    with LoggingMixin, WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // Базовая инициализация логгера уже выполнена в main()
-    // Дополнительная инициализация будет выполнена в MyApp
+
+    // Инициализируем логгер для данного виджета
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initLogger(ref, 'HomePage');
+      logger.info('Home page initialized');
+    });
+
+    // Подписываемся на изменения жизненного цикла приложения
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Полная инициализация уже выполняется в MyApp с постфреймовым колбэком
-    // Здесь можно добавить специфичную для данной страницы логику
-    LogUtils.logUserAction('Открытие главной страницы');
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_loggerInitialized) {
+      logger.info('Home page disposed');
+    }
+    super.dispose();
+  }
+
+  bool _loggerInitialized = false;
+
+  @override
+  void initLogger(WidgetRef ref, String module) {
+    super.initLogger(ref, module);
+    _loggerInitialized = true;
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FutureBuilder<String?>(
-              future: AppLogger.instance.getLogDirectory(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Text('Лог директория: ${snapshot.data}');
-                } else {
-                  return Text('Загрузка директории логов...');
-                }
-              },
-            ),
-            SizedBox(height: 16),
-            Text('Логгер готов: ${AppLogger.instance.isFileLoggingReady}'),
-            SizedBox(height: 16),
-            FutureBuilder<List<File>>(
-              future: AppLogger.instance.getLogFiles(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return Text('Файлов логов: ${snapshot.data!.length}');
-                } else {
-                  return Text('Проверка файлов логов...');
-                }
-              },
-            ),
-            SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                _testLogging();
-              },
-              child: const Text('Тест логирования'),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                // Повторно тестируем LogUtils.logAppInfo
-                AppLogger.instance.info(
-                  '=== Повторный тест LogUtils.logExtendedAppInfo ===',
-                );
-                LogUtils.logExtendedAppInfo();
-                AppLogger.instance.info('=== Конец повторного теста ===');
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    AppLifecycleLogger.logStateChange(state);
+  }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('LogUtils.logAppInfo выполнен!')),
-                );
-              },
-              child: const Text('Тест LogUtils.logAppInfo'),
-            ),
-            SizedBox(height: 16),
-            // Добавляем кнопку для тестирования системы ошибок v2
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ErrorSystemV2TestPage(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Тест системы ошибок v2'),
-            ),
+  Future<void> _testLogging() async {
+    if (!_loggerInitialized) return;
 
-            const SizedBox(height: 16),
+    await logger.info('Testing logging functionality');
 
-            const SizedBox(height: 16),
-            // тест ошибок _testNonCriticalError and _testCriticalError
-            ElevatedButton(
-              onPressed: _testNonCriticalError,
-              child: const Text('Тест: Некритическая ошибка'),
-            ),
-            ElevatedButton(
-              onPressed: _testCriticalError,
-              child: const Text('Тест: Критическая ошибка'),
-            ),
-          ],
-        ),
-      ),
+    // Демонстрируем разные уровни логирования
+    await logger.debug('Debug message - detailed information');
+    await logger.info('Info message - general information');
+    await logger.warning('Warning message - something to pay attention to');
+
+    // Демонстрируем логирование с метаданными
+    await logger.info(
+      'User action performed',
+      metadata: {
+        'action': 'test_button_pressed',
+        'timestamp': DateTime.now().toIso8601String(),
+        'userAgent': 'Flutter App',
+      },
     );
-  }
 
-  void _testLogging() {
-    // Примеры логирования
-    AppLogger.instance.debug('Отладочное сообщение / Debug message');
-    AppLogger.instance.info('Информационное сообщение / Info message');
-    AppLogger.instance.warning('Предупреждение / Warning message');
-    AppLogger.instance.error('Ошибка / Error message');
+    // Демонстрируем логирование производительности
+    await PerformanceLogger.measure('test_operation', () async {
+      await Future.delayed(const Duration(milliseconds: 100));
+      await logger.info('Test operation completed');
+    }, module: 'HomePage');
 
-    // Тестирование локализованных системных сообщений
-    _testSystemMessages();
-  }
-
-  void _testSystemMessages() async {
+    // Демонстрируем обработку ошибок
     try {
-      // Это вызовет локализованные сообщения об ошибках
-      await AppLogger.instance.getLogFiles();
-      await AppLogger.instance.clearAllLogs();
-    } catch (e) {
-      AppLogger.instance.error(
-        'Ошибка при тестировании системных сообщений',
-        e,
+      throw Exception('Test exception for demonstration');
+    } catch (e, stackTrace) {
+      await logger.error(
+        'Caught test exception',
+        error: e,
+        stackTrace: stackTrace,
+        metadata: {'context': 'test_logging', 'expected': true},
+      );
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Check console and log files for output'),
+          duration: Duration(seconds: 3),
+        ),
       );
     }
   }
-
-  /// Тестирует некритическую ошибку (SnackBar)
-  void _testNonCriticalError() async {
-    final error = AuthenticationErrorV2(
-      errorType: AuthenticationErrorType.invalidCredentials,
-      message: 'Неверные учетные данные для демонстрации',
-      username: 'test@example.com',
-    );
-
-    await ErrorDisplayV2.show(
-      context,
-      error,
-      config: const ErrorDisplayConfigV2(
-        type: ErrorDisplayType.snackbar,
-        showSolution: true,
-        showRetryButton: true,
-      ),
-      onRetry: () {
-        AppLogger.instance.info('Пользователь нажал повторить попытку');
-      },
-    );
-  }
-
-  /// Тестирует критическую ошибку (диалог)
-  void _testCriticalError() async {
-    final error = EncryptionErrorV2(
-      errorType: EncryptionErrorType.decryptionFailed,
-      message: 'Критическая ошибка расшифровки данных',
-      algorithm: 'AES-256-GCM',
-      technicalDetails: 'javax.crypto.BadPaddingException: Invalid padding',
-    );
-
-    await ErrorDisplayV2.show(
-      context,
-      error,
-      config: ErrorDisplayConfigV2.critical(),
-      onRetry: () {
-        AppLogger.instance.info('Попытка восстановления...');
-      },
-      onReport: () {
-        AppLogger.instance.info('Отправка отчета об ошибке...');
-      },
-    );
-  }
-}
-
-/// Простая страница для тестирования системы ошибок (оставлена для совместимости)
-class SimpleErrorTestPage extends StatelessWidget {
-  const SimpleErrorTestPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Тест системы ошибок (старая)')),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Система ошибок успешно интегрирована!',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Система обработки ошибок готова к использованию.\n\n'
-                'Для полного тестирования смотрите:\n'
-                '• lib/core/error/test_widget.dart\n'
-                '• lib/core/error/examples/error_examples.dart\n'
-                '• lib/core/error/QUICK_START.md',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Продвинутая страница для тестирования системы ошибок v2
-class ErrorSystemV2TestPage extends StatefulWidget {
-  const ErrorSystemV2TestPage({super.key});
-
-  @override
-  State<ErrorSystemV2TestPage> createState() => _ErrorSystemV2TestPageState();
-}
-
-class _ErrorSystemV2TestPageState extends State<ErrorSystemV2TestPage> {
-  String _lastResultMessage = 'Результат появится здесь';
-  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Тестирование системы ошибок v2'),
-        backgroundColor: Colors.purple[100],
+        title: const Text("Codexa Pass"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info),
+            onPressed: () => _showLogInfo(),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Система ошибок v2 - Демонстрация',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple[700],
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Новая система включает:\n'
-                      '• Result<T> для безопасного выполнения операций\n'
-                      '• Автоматическое восстановление с retry логикой\n'
-                      '• Расширенную локализацию\n'
-                      '• Гибкие UI компоненты\n'
-                      '• Интеграцию с аналитикой',
-                    ),
-                  ],
-                ),
-              ),
+            const Text(
+              "Welcome to Codexa Pass",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-
-            const SizedBox(height: 16),
-
-            // Секция тестирования типов ошибок
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Тестирование типов ошибок',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildTestButton(
-                          'Аутентификация\n(SnackBar)',
-                          Colors.blue,
-                          () => _testAuthenticationError(),
-                        ),
-                        _buildTestButton(
-                          'Шифрование\n(Dialog)',
-                          Colors.red,
-                          () => _testEncryptionError(),
-                        ),
-                        _buildTestButton(
-                          'Сеть\n(Banner)',
-                          Colors.orange,
-                          () => _testNetworkError(),
-                        ),
-                        _buildTestButton(
-                          'Валидация\n(Inline)',
-                          Colors.green,
-                          () => _testValidationError(),
-                        ),
-                        _buildTestButton(
-                          'База данных\n(Fullscreen)',
-                          Colors.brown,
-                          () => _testDatabaseError(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 20),
+            const Text(
+              "Your secure password manager with advanced logging",
+              style: TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
             ),
-
-            const SizedBox(height: 16),
-
-            // Секция тестирования Result<T>
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Тестирование Result<T>',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading
-                                ? null
-                                : () => _testSuccessfulOperation(),
-                            icon: const Icon(Icons.check_circle),
-                            label: const Text('Успешная операция'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green[100],
-                              foregroundColor: Colors.green[700],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading
-                                ? null
-                                : () => _testFailedOperation(),
-                            icon: const Icon(Icons.error),
-                            label: const Text('Операция с ошибкой'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red[100],
-                              foregroundColor: Colors.red[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading
-                            ? null
-                            : () => _testRetryOperation(),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Операция с автоматическим retry'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple[100],
-                          foregroundColor: Colors.purple[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: _testLogging,
+              icon: const Icon(Icons.bug_report),
+              label: const Text('Test Logging System'),
             ),
-
-            const SizedBox(height: 16),
-
-            // Результат последней операции
-            Card(
-              color: Colors.grey.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue[600]),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Результат последней операции',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_isLoading)
-                      const Row(
-                        children: [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Выполняется...'),
-                        ],
-                      )
-                    else
-                      Text(
-                        _lastResultMessage,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Статистика системы ошибок
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Статистика системы ошибок',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    FutureBuilder<Map<String, Object>>(
-                      future: _getErrorHandlerStats(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          final stats = snapshot.data!;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Всего ошибок отслежено: ${stats['totalErrorsTracked'] ?? 0}',
-                              ),
-                              Text(
-                                'Активных попыток повтора: ${stats['activeRetryAttempts'] ?? 0}',
-                              ),
-                              Text(
-                                'Обработчиков восстановления: ${stats['recoveryHandlersCount'] ?? 0}',
-                              ),
-                            ],
-                          );
-                        } else {
-                          return const Text('Загрузка статистики...');
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => setState(() {}),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Обновить статистику'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _showLoggingDemo(),
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('View Logging Demo'),
             ),
           ],
         ),
@@ -761,268 +233,190 @@ class _ErrorSystemV2TestPageState extends State<ErrorSystemV2TestPage> {
     );
   }
 
-  Widget _buildTestButton(String title, Color color, VoidCallback onPressed) {
-    return SizedBox(
-      width: 120,
-      height: 60,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color.withOpacity(0.1),
-          foregroundColor: _getDarkColor(color),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 12),
-        ),
-      ),
-    );
-  }
-
-  Color _getDarkColor(Color color) {
-    // Преобразование базового цвета в более темный оттенок
-    final hsl = HSLColor.fromColor(color);
-    return hsl.withLightness((hsl.lightness - 0.3).clamp(0.0, 1.0)).toColor();
-  }
-
-  // Тестирование различных типов ошибок
-
-  Future<void> _testAuthenticationError() async {
-    final error = AuthenticationErrorV2(
-      errorType: AuthenticationErrorType.invalidCredentials,
-      message: 'Неверные учетные данные',
-      username: 'test@example.com',
-      attemptNumber: 3,
-    );
-
-    await ErrorDisplayV2.show(
-      context,
-      error,
-      config: const ErrorDisplayConfigV2(
-        type: ErrorDisplayType.snackbar,
-        showSolution: true,
-        showRetryButton: true,
-      ),
-      onRetry: () => _setResult(
-        'Пользователь нажал "Повторить" для ошибки аутентификации',
-      ),
-    );
-  }
-
-  Future<void> _testEncryptionError() async {
-    final error = EncryptionErrorV2(
-      errorType: EncryptionErrorType.decryptionFailed,
-      message: 'Ошибка расшифровки данных',
-      algorithm: 'AES-256-GCM',
-      keyId: 'user_key_123',
-      technicalDetails:
-          'javax.crypto.BadPaddingException: Given final block not properly padded',
-    );
-
-    await ErrorDisplayV2.show(
-      context,
-      error,
-      config: ErrorDisplayConfigV2.critical(),
-      onRetry: () => _setResult('Попытка восстановления ключа шифрования'),
-      onReport: () => _setResult('Отчет об ошибке шифрования отправлен'),
-    );
-  }
-
-  Future<void> _testNetworkError() async {
-    final error = NetworkErrorV2(
-      errorType: NetworkErrorType.noConnection,
-      message: 'Нет подключения к интернету',
-      url: 'https://api.codexa-pass.com/sync',
-      method: 'POST',
-    );
-
-    await ErrorDisplayV2.show(
-      context,
-      error,
-      config: const ErrorDisplayConfigV2(
-        type: ErrorDisplayType.banner,
-        duration: Duration(seconds: 8),
-        showSolution: true,
-        showRetryButton: true,
-      ),
-      onRetry: () => _setResult('Повторная попытка сетевого запроса'),
-    );
-  }
-
-  Future<void> _testValidationError() async {
-    final error = ValidationErrorV2(
-      errorType: ValidationErrorType.weakPassword,
-      message: 'Пароль слишком слабый',
-      field: 'password',
-      value: '123456',
-      constraints: {
-        'minLength': 8,
-        'requireUppercase': true,
-        'requireDigits': true,
-        'requireSpecialChars': true,
-      },
-    );
-
-    // Показываем как встроенный виджет в диалоге
+  void _showLogInfo() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Пример встроенного виджета ошибки'),
-        content: InlineErrorWidgetV2(
-          error: error,
-          config: const ErrorDisplayConfigV2(
-            showSolution: true,
-            isDismissible: true,
-          ),
-          onDismiss: () {
-            Navigator.of(context).pop();
-            _setResult('Встроенная ошибка валидации закрыта');
-          },
+        title: const Text('Logging Information'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Session ID: ${AppLogger.instance.sessionId}'),
+            const SizedBox(height: 8),
+            Text('Min Level: ${AppLogger.instance.config.minLevel.name}'),
+            const SizedBox(height: 8),
+            Text('Console: ${AppLogger.instance.config.enableConsole}'),
+            const SizedBox(height: 8),
+            Text('File: ${AppLogger.instance.config.enableFile}'),
+            const SizedBox(height: 8),
+            Text(
+              'Crash Reports: ${AppLogger.instance.config.enableCrashReports}',
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть'),
+            child: const Text('OK'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _testDatabaseError() async {
-    final error = DatabaseErrorV2(
-      errorType: DatabaseErrorType.corruptedDatabase,
-      message: 'База данных повреждена',
-      tableName: 'passwords',
-      technicalDetails: 'SQLite error: database disk image is malformed',
-    );
-
-    await ErrorDisplayV2.show(
+  void _showLoggingDemo() {
+    Navigator.of(
       context,
-      error,
-      config: const ErrorDisplayConfigV2(
-        type: ErrorDisplayType.fullscreen,
-        showTechnicalDetails: true,
-        showSolution: true,
-        showRetryButton: true,
-        showReportButton: true,
-      ),
-      onRetry: () => _setResult('Попытка восстановления базы данных'),
-      onReport: () =>
-          _setResult('Отчет о повреждении БД отправлен в службу поддержки'),
-    );
+    ).push(MaterialPageRoute(builder: (context) => const LoggingDemoPage()));
   }
+}
 
-  // Тестирование Result<T> операций
+/// Демонстрационная страница для показа возможностей логгирования
+class LoggingDemoPage extends ConsumerStatefulWidget {
+  const LoggingDemoPage({Key? key}) : super(key: key);
 
-  Future<void> _testSuccessfulOperation() async {
-    setState(() => _isLoading = true);
+  @override
+  ConsumerState<LoggingDemoPage> createState() => _LoggingDemoPageState();
+}
 
-    try {
-      final result = await _performSuccessfulOperation();
-
-      result.fold(
-        (data) => _setResult('✅ Успешная операция: $data'),
-        (error) =>
-            _setResult('❌ Неожиданная ошибка: ${error.localizedMessage}'),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _testFailedOperation() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final result = await _performFailedOperation();
-
-      result.fold(
-        (data) => _setResult('✅ Неожиданный успех: $data'),
-        (error) => _setResult('❌ Ожидаемая ошибка: ${error.localizedMessage}'),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _testRetryOperation() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final handler = getGlobalErrorHandler();
-
-      final result = await handler.executeWithRetry(
-        () async {
-          return await _performUnreliableOperation();
-        },
-        maxRetries: 3,
-        useExponentialBackoff: true,
-      );
-
-      result.fold(
-        (data) => _setResult('✅ Операция с retry успешна: $data'),
-        (error) => _setResult(
-          '❌ Операция не удалась после 3 попыток: ${error.localizedMessage}',
-        ),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  // Вспомогательные методы
-
-  Future<ResultV2<String>> _performSuccessfulOperation() async {
-    await Future.delayed(const Duration(seconds: 1));
-    return SuccessV2('Данные успешно получены');
-  }
-
-  Future<ResultV2<String>> _performFailedOperation() async {
-    await Future.delayed(const Duration(seconds: 1));
-
-    final error = NetworkErrorV2(
-      errorType: NetworkErrorType.serverError,
-      message: 'Сервер временно недоступен',
-      statusCode: 503,
-      url: '/api/test',
-    );
-
-    return FailureV2(error);
-  }
-
-  Future<String> _performUnreliableOperation() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // 70% шанс неудачи для демонстрации retry логики
-    if (DateTime.now().millisecond % 10 < 7) {
-      throw NetworkErrorV2(
-        errorType: NetworkErrorType.timeout,
-        message: 'Время ожидания истекло',
-        url: '/api/unreliable',
-      );
-    }
-
-    return 'Операция выполнена после нескольких попыток';
-  }
-
-  Future<Map<String, Object>> _getErrorHandlerStats() async {
-    try {
-      final handler = getGlobalErrorHandler();
-      return handler.getErrorStats();
-    } catch (e) {
-      return {'error': 'Не удалось получить статистику'};
-    }
-  }
-
-  void _setResult(String message) {
-    setState(() {
-      _lastResultMessage =
-          '[${DateTime.now().toString().substring(11, 19)}] $message';
+class _LoggingDemoPageState extends ConsumerState<LoggingDemoPage>
+    with LoggingMixin {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initLogger(ref, 'LoggingDemo');
+      logger.info('Logging demo page opened');
     });
+  }
 
-    AppLogger.instance.info('ErrorV2 Test: $message');
+  @override
+  void dispose() {
+    logger.info('Logging demo page closed');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Logging Demo')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Codexa Pass Logging System Demo',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            _buildDemoButton(
+              'Debug Log',
+              () => logger.debug('Debug message example'),
+            ),
+            _buildDemoButton(
+              'Info Log',
+              () => logger.info('Info message example'),
+            ),
+            _buildDemoButton(
+              'Warning Log',
+              () => logger.warning('Warning message example'),
+            ),
+            _buildDemoButton(
+              'Error Log',
+              () => logger.error('Error message example'),
+            ),
+            _buildDemoButton('Performance Test', _performanceTest),
+            _buildDemoButton('Sensitive Data Test', _sensitiveDataTest),
+            _buildDemoButton('HTTP Request Simulation', _httpRequestTest),
+            const SizedBox(height: 20),
+            const Text(
+              'Check console output and log files in the app documents directory.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoButton(String title, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: ElevatedButton(onPressed: onPressed, child: Text(title)),
+    );
+  }
+
+  Future<void> _performanceTest() async {
+    await PerformanceLogger.measure('demo_performance_test', () async {
+      await logger.info('Starting performance test');
+      await Future.delayed(const Duration(milliseconds: 200));
+      await logger.info('Performance test completed');
+    }, module: 'LoggingDemo');
+  }
+
+  Future<void> _sensitiveDataTest() async {
+    await logger.info(
+      'Demonstrating sensitive data masking',
+      metadata: {
+        'password': 'secretPassword123',
+        'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo.token',
+        'email': 'user@example.com',
+        'normalData': 'This is not sensitive',
+      },
+    );
+  }
+
+  Future<void> _httpRequestTest() async {
+    HttpLogger.logRequest(
+      method: 'POST',
+      url: 'https://api.example.com/auth/login',
+      headers: {'Content-Type': 'application/json'},
+      body: {'username': 'user@example.com', 'password': 'secretPassword'},
+    );
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    HttpLogger.logResponse(
+      method: 'POST',
+      url: 'https://api.example.com/auth/login',
+      statusCode: 200,
+      headers: {'Content-Type': 'application/json'},
+      body: {'token': 'demo_token_12345', 'expires_in': 3600},
+      duration: const Duration(milliseconds: 150),
+    );
+  }
+}
+
+/// Навигационный observer для логирования переходов
+class LoggingNavigatorObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    NavigationLogger.logPush(
+      route.settings.name ?? 'Unknown',
+      arguments: route.settings.arguments,
+    );
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    NavigationLogger.logPop(route.settings.name ?? 'Unknown');
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute != null && oldRoute != null) {
+      NavigationLogger.logReplace(
+        oldRoute.settings.name ?? 'Unknown',
+        newRoute.settings.name ?? 'Unknown',
+        arguments: newRoute.settings.arguments,
+      );
+    }
   }
 }
