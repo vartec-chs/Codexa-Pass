@@ -43,6 +43,16 @@ class _ErrorBoundaryState extends ConsumerState<ErrorBoundary> {
   }
 
   @override
+  void dispose() {
+    // Сохраняем ошибку в глобальное хранилище перед уничтожением
+    if (_hasError && _currentError != null && widget.enableLogging) {
+      final errorController = ref.read(errorControllerProvider);
+      errorController.persistError(_currentError!);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_hasError && _currentError != null) {
       return widget.fallbackBuilder?.call(_currentError!, _retry) ??
@@ -91,6 +101,8 @@ class _ErrorBoundaryState extends ConsumerState<ErrorBoundary> {
     if (widget.enableLogging) {
       final errorController = ref.read(errorControllerProvider);
       errorController.handleError(error);
+      // Сразу сохраняем в историю для доступа после навигации
+      errorController.persistError(error);
     }
   }
 

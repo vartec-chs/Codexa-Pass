@@ -11,6 +11,7 @@ class ErrorConfig {
     this.enableDeduplication = true,
     this.deduplicationTimeWindow = const Duration(minutes: 5),
     this.maxErrorQueueSize = 100,
+    this.maxErrorHistorySize = 50,
     this.maxStackTraceLines = 50,
     this.maxMessageLength = 1000,
     this.enableRetryMechanism = true,
@@ -56,6 +57,9 @@ class ErrorConfig {
 
   /// Максимальный размер очереди ошибок
   final int maxErrorQueueSize;
+
+  /// Максимальный размер истории ошибок
+  final int maxErrorHistorySize;
 
   /// Максимальное количество строк стека вызовов
   final int maxStackTraceLines;

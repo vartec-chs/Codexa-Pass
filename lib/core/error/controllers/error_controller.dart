@@ -40,6 +40,10 @@ class ErrorController {
   /// Кеш для Circuit Breaker
   final Map<String, _CircuitBreakerState> _circuitBreakers = {};
 
+  /// История ошибок для просмотра деталей
+  final List<AppError> _errorHistory = [];
+  final Map<String, AppError> _persistedErrors = {};
+
   /// Флаг инициализации
   bool _isInitialized = false;
 
@@ -289,6 +293,44 @@ class ErrorController {
     await _notificationController.close();
     _circuitBreakers.clear();
     _isInitialized = false;
+  }
+
+  /// Сохранить ошибку для последующего просмотра
+  void persistError(AppError error) {
+    _persistedErrors[error.errorId] = error;
+    _errorHistory.add(error);
+
+    // Ограничиваем размер истории
+    if (_errorHistory.length > config.maxErrorHistorySize) {
+      final removedError = _errorHistory.removeAt(0);
+      _persistedErrors.remove(removedError.errorId);
+    }
+  }
+
+  /// Получить ошибку по ID
+  AppError? getPersistedError(String errorId) {
+    return _persistedErrors[errorId];
+  }
+
+  /// Получить историю ошибок
+  List<AppError> get errorHistory => List.unmodifiable(_errorHistory);
+
+  /// Получить последние ошибки определенного типа
+  List<AppError> getErrorsByType(Type errorType) {
+    return _errorHistory
+        .where((error) => error.runtimeType == errorType)
+        .toList();
+  }
+
+  /// Получить ошибки по модулю
+  List<AppError> getErrorsByModule(String module) {
+    return _errorHistory.where((error) => error.module == module).toList();
+  }
+
+  /// Удалить конкретную ошибку из истории
+  void removeErrorFromHistory(String errorId) {
+    _persistedErrors.remove(errorId);
+    _errorHistory.removeWhere((error) => error.errorId == errorId);
   }
 }
 

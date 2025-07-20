@@ -22,6 +22,7 @@ export 'handlers/error_analytics_handler.dart';
 export 'ui/error_boundary.dart';
 export 'ui/error_widgets/error_display_widget.dart';
 export 'ui/error_dialogs/error_dialogs.dart';
+export 'ui/error_history_page.dart';
 export 'ui/demo/error_demo_page.dart';
 
 // Расширения

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../error_system.dart';
+import '../error_history_page.dart';
 
 /// Демонстрационная страница для показа возможностей системы обработки ошибок
 class ErrorDemoPage extends ConsumerStatefulWidget {
@@ -63,6 +64,19 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
         title: const Text('Error System Demo'),
         backgroundColor: Colors.red.shade400,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ErrorHistoryPage(),
+                ),
+              );
+            },
+            tooltip: 'История ошибок',
+          ),
+        ],
       ),
       body: ErrorBoundary(
         child: SingleChildScrollView(
