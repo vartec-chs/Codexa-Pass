@@ -11,8 +11,8 @@ class ErrorHistoryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final errorController = ref.watch(errorControllerProvider);
-    final errorHistory = errorController.errorHistory;
+    // Используем AsyncValue для отслеживания состояния стрима
+    final errorHistoryAsync = ref.watch(errorHistoryStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -20,17 +20,48 @@ class ErrorHistoryPage extends ConsumerWidget {
         backgroundColor: Colors.red.shade400,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.clear_all),
-            onPressed: errorHistory.isNotEmpty
-                ? () => _showClearConfirmation(context, errorController)
-                : null,
+          errorHistoryAsync.when(
+            data: (errorHistory) => IconButton(
+              icon: const Icon(Icons.clear_all),
+              onPressed: errorHistory.isNotEmpty
+                  ? () => _showClearConfirmation(
+                      context,
+                      ref.read(errorControllerProvider),
+                    )
+                  : null,
+            ),
+            loading: () =>
+                const IconButton(icon: Icon(Icons.clear_all), onPressed: null),
+            error: (_, __) =>
+                const IconButton(icon: Icon(Icons.clear_all), onPressed: null),
           ),
         ],
       ),
-      body: errorHistory.isEmpty
-          ? _buildEmptyState(context)
-          : _buildErrorList(context, errorHistory, errorController),
+      body: errorHistoryAsync.when(
+        data: (errorHistory) {
+          if (errorHistory.isEmpty) {
+            return _buildEmptyState(context);
+          }
+          return _buildErrorList(
+            context,
+            errorHistory,
+            ref.read(errorControllerProvider),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error, size: 64, color: Colors.red.shade400),
+              const SizedBox(height: 16),
+              const Text('Ошибка загрузки истории'),
+              const SizedBox(height: 8),
+              Text(error.toString()),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

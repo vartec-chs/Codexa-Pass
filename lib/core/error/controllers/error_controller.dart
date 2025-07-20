@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_error.dart';
@@ -10,6 +11,7 @@ import '../utils/error_formatter.dart';
 import '../handlers/error_handler.dart';
 import '../handlers/error_recovery_handler.dart';
 import '../handlers/error_analytics_handler.dart';
+import '../ui/global_error_details_service.dart';
 import 'error_queue_controller.dart';
 
 /// Основной контроллер системы обработки ошибок
@@ -44,8 +46,15 @@ class ErrorController {
   final List<AppError> _errorHistory = [];
   final Map<String, AppError> _persistedErrors = {};
 
+  /// Контроллер для уведомлений об изменениях истории
+  final StreamController<List<AppError>> _historyController =
+      StreamController<List<AppError>>.broadcast();
+
   /// Флаг инициализации
   bool _isInitialized = false;
+
+  /// Стрим истории ошибок для UI
+  Stream<List<AppError>> get historyStream => _historyController.stream;
 
   /// Стрим уведомлений для UI
   Stream<ErrorNotification> get notificationStream =>
@@ -75,6 +84,9 @@ class ErrorController {
     // Подписываемся на ошибки из очереди
     _queueController.addErrorHandler(_handleError);
 
+    // Отправляем начальное состояние истории
+    _historyController.add(List.unmodifiable(_errorHistory));
+
     _isInitialized = true;
   }
 
@@ -83,6 +95,9 @@ class ErrorController {
     if (!_isInitialized) {
       await initialize();
     }
+
+    // Сразу сохраняем в историю при получении любой ошибки
+    persistError(error);
 
     // Проверяем Circuit Breaker
     if (config.enableCircuitBreaker && error.module != null) {
@@ -168,6 +183,16 @@ class ErrorController {
     _notificationController.add(notification);
   }
 
+  /// Показать ошибку через SnackBar с кнопкой "Детали"
+  void showErrorSnackBarWithDetails(BuildContext context, AppError error, String message) {
+    GlobalErrorDetailsService.showErrorSnackBarWithDetails(context, error, message);
+  }
+
+  /// Показать детали ошибки в диалоге
+  void showErrorDetails(BuildContext context, AppError error) {
+    GlobalErrorDetailsService.showErrorDetails(context, error);
+  }
+
   /// Повторить операцию
   Future<void> retryOperation(AppError error) async {
     if (!error.canRetryOperation) return;
@@ -211,6 +236,11 @@ class ErrorController {
   /// Очистить историю ошибок
   void clearErrorHistory() {
     _queueController.clearQueue();
+    _errorHistory.clear();
+    _persistedErrors.clear();
+
+    // Уведомляем об изменении истории
+    _historyController.add(List.unmodifiable(_errorHistory));
   }
 
   /// Обновить конфигурацию
@@ -291,7 +321,10 @@ class ErrorController {
     await _recoveryHandler.dispose();
     await _analyticsHandler.dispose();
     await _notificationController.close();
+    await _historyController.close();
     _circuitBreakers.clear();
+    _errorHistory.clear();
+    _persistedErrors.clear();
     _isInitialized = false;
   }
 
@@ -305,6 +338,9 @@ class ErrorController {
       final removedError = _errorHistory.removeAt(0);
       _persistedErrors.remove(removedError.errorId);
     }
+
+    // Уведомляем об изменении истории
+    _historyController.add(List.unmodifiable(_errorHistory));
   }
 
   /// Получить ошибку по ID
@@ -331,6 +367,9 @@ class ErrorController {
   void removeErrorFromHistory(String errorId) {
     _persistedErrors.remove(errorId);
     _errorHistory.removeWhere((error) => error.errorId == errorId);
+
+    // Уведомляем об изменении истории
+    _historyController.add(List.unmodifiable(_errorHistory));
   }
 }
 
@@ -427,7 +466,22 @@ final errorControllerProvider = Provider<ErrorController>((ref) {
 
   ref.onDispose(() => controller.dispose());
 
+  // Автоматически инициализируем контроллер
+  Future.microtask(() => controller.initialize());
+
   return controller;
+});
+
+/// Провайдер для истории ошибок
+final errorHistoryProvider = Provider<List<AppError>>((ref) {
+  final errorController = ref.watch(errorControllerProvider);
+  return errorController.errorHistory;
+});
+
+/// Провайдер для стрима истории ошибок
+final errorHistoryStreamProvider = StreamProvider<List<AppError>>((ref) {
+  final controller = ref.watch(errorControllerProvider);
+  return controller.historyStream;
 });
 
 /// Провайдер для стрима уведомлений об ошибках

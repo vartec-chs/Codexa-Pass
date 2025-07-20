@@ -315,6 +315,16 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
                 foregroundColor: Colors.white,
               ),
             ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: () => _showSimpleErrorTest(),
+              icon: const Icon(Icons.history),
+              label: const Text('Test Error History'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade400,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ],
         ),
       ),
@@ -363,6 +373,12 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const ErrorDemoPage()));
+  }
+
+  void _showSimpleErrorTest() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const SimpleErrorTestPage()),
+    );
   }
 }
 
