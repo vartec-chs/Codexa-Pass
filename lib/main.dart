@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:codexa_pass/generated/l10n.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
+import 'package:codexa_pass/core/error/error_system.dart';
+import 'package:codexa_pass/core/error/global_error_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,10 +18,25 @@ Future<void> main() async {
   // Настраиваем observer для автоматического логирования состояний Riverpod
   final container = ProviderContainer(observers: [LoggingProviderObserver()]);
 
+  // Инициализируем систему обработки ошибок
+  await _initializeErrorHandling(container);
+
   // Логируем запуск приложения
   AppLifecycleLogger.logAppStart();
 
-  runApp(UncontrolledProviderScope(container: container, child: MyApp()));
+  // Запускаем приложение с обработкой ошибок
+  runAppWithErrorHandling(
+    UncontrolledProviderScope(container: container, child: MyApp()),
+    errorConfig: const ErrorConfig(
+      showErrorDetails: kDebugMode,
+      enableErrorReporting: kReleaseMode,
+      enableCrashReporting: kReleaseMode,
+      enableDeduplication: true,
+      enableRetryMechanism: true,
+      enableCircuitBreaker: true,
+    ),
+    container: container,
+  );
 }
 
 /// Инициализация системы логгирования
@@ -71,6 +88,57 @@ Future<void> _initializeLogging() async {
   } catch (e, stackTrace) {
     // Если логгер не удалось инициализировать, выводим в консоль
     debugPrint('Failed to initialize logging system: $e');
+    debugPrint('StackTrace: $stackTrace');
+  }
+}
+
+/// Инициализация системы обработки ошибок
+Future<void> _initializeErrorHandling(ProviderContainer container) async {
+  try {
+    // Создаем конфигурацию системы ошибок
+    const errorConfig = ErrorConfig(
+      showErrorDetails: kDebugMode,
+      enableErrorReporting: kReleaseMode,
+      enableCrashReporting: kReleaseMode,
+      enableDeduplication: true,
+      enableRetryMechanism: true,
+      enableCircuitBreaker: true,
+      enableSensitiveDataMasking: true,
+      moduleConfigs: {
+        'Auth': ModuleErrorConfig(
+          maxRetries: 3,
+          retryDelay: Duration(seconds: 2),
+          enableAutoRecovery: true,
+          autoRecoveryStrategy: 'retry',
+        ),
+        'Database': ModuleErrorConfig(
+          maxRetries: 5,
+          retryDelay: Duration(milliseconds: 500),
+          enableAutoRecovery: true,
+          autoRecoveryStrategy: 'reset',
+        ),
+        'Network': ModuleErrorConfig(
+          maxRetries: 3,
+          retryDelay: Duration(seconds: 1),
+          enableAutoRecovery: true,
+          autoRecoveryStrategy: 'fallback',
+        ),
+      },
+    );
+
+    // Инициализируем глобальный обработчик ошибок
+    await GlobalErrorHandler.initialize(
+      config: errorConfig,
+      container: container,
+    );
+
+    await AppLogger.instance.info(
+      'Error handling system initialized successfully',
+      logger: 'Main',
+      metadata: {'errorConfig': errorConfig.toJson()},
+    );
+  } catch (e, stackTrace) {
+    debugPrint('Failed to initialize error handling system: $e');
     debugPrint('StackTrace: $stackTrace');
   }
 }
@@ -227,6 +295,16 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
               icon: const Icon(Icons.play_arrow),
               label: const Text('View Logging Demo'),
             ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: () => _showErrorDemo(),
+              icon: const Icon(Icons.error_outline),
+              label: const Text('Error System Demo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ],
         ),
       ),
@@ -269,6 +347,12 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (context) => const LoggingDemoPage()));
+  }
+
+  void _showErrorDemo() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const ErrorDemoPage()));
   }
 }
 
