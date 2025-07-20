@@ -5,7 +5,8 @@ import '../models/error_severity.dart';
 
 /// Глобальный сервис для показа деталей ошибок
 class GlobalErrorDetailsService {
-  static final GlobalErrorDetailsService _instance = GlobalErrorDetailsService._internal();
+  static final GlobalErrorDetailsService _instance =
+      GlobalErrorDetailsService._internal();
   factory GlobalErrorDetailsService() => _instance;
   GlobalErrorDetailsService._internal();
 
@@ -36,10 +37,7 @@ class GlobalErrorDetailsService {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -54,9 +52,7 @@ class GlobalErrorDetailsService {
         ),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -94,10 +90,7 @@ class GlobalErrorDetailsService {
 
 /// Диалог с деталями ошибки
 class ErrorDetailsDialog extends StatelessWidget {
-  const ErrorDetailsDialog({
-    super.key,
-    required this.error,
-  });
+  const ErrorDetailsDialog({super.key, required this.error});
 
   final AppError error;
 
@@ -133,10 +126,7 @@ class ErrorDetailsDialog extends StatelessWidget {
               _buildDetailRow('Код', error.code),
               _buildDetailRow('Сообщение', error.message),
               _buildDetailRow('Уровень', error.severity.name.toUpperCase()),
-              _buildDetailRow(
-                'Время',
-                _formatDateTime(error.timestamp),
-              ),
+              _buildDetailRow('Время', _formatDateTime(error.timestamp)),
               if (error.module != null)
                 _buildDetailRow('Модуль', error.module!),
               if (error.metadata?.isNotEmpty == true) ...[
@@ -237,18 +227,18 @@ class ErrorDetailsDialog extends StatelessWidget {
     details.writeln('Сообщение: ${error.message}');
     details.writeln('Уровень: ${error.severity.name.toUpperCase()}');
     details.writeln('Время: ${_formatDateTime(error.timestamp)}');
-    
+
     if (error.module != null) {
       details.writeln('Модуль: ${error.module}');
     }
-    
+
     if (error.metadata?.isNotEmpty == true) {
       details.writeln('\nМетаданные:');
       error.metadata!.forEach((key, value) {
         details.writeln('  $key: $value');
       });
     }
-    
+
     if (error.stackTrace != null) {
       details.writeln('\nStack Trace:');
       details.writeln(error.stackTrace.toString());

@@ -184,8 +184,16 @@ class ErrorController {
   }
 
   /// Показать ошибку через SnackBar с кнопкой "Детали"
-  void showErrorSnackBarWithDetails(BuildContext context, AppError error, String message) {
-    GlobalErrorDetailsService.showErrorSnackBarWithDetails(context, error, message);
+  void showErrorSnackBarWithDetails(
+    BuildContext context,
+    AppError error,
+    String message,
+  ) {
+    GlobalErrorDetailsService.showErrorSnackBarWithDetails(
+      context,
+      error,
+      message,
+    );
   }
 
   /// Показать детали ошибки в диалоге
