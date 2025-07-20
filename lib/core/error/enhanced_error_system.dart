@@ -6,7 +6,7 @@
 /// - ErrorHandler для глобальной обработки ошибок
 /// - Интеграция с краш-репортами и логированием
 
-library enhanced_error_system;
+library;
 
 // Новая улучшенная система ошибок
 export 'enhanced_app_error.dart';

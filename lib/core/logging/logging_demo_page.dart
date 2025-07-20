@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
-import 'crash_reports_page.dart';
 
 /// Демонстрационная страница для показа возможностей расширенной системы логирования
 class LoggingDemoPage extends StatefulWidget {

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'app_error.dart';
-import 'error_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'enhanced_app_error.dart';
+import 'error_localizations_universal.dart';
 
 /// Диалог для отображения критических ошибок
-class CriticalErrorDialog extends StatefulWidget {
-  final AppError error;
+class CriticalErrorDialog extends ConsumerStatefulWidget {
+  final BaseAppError error;
   final String message;
   final VoidCallback? onRetry;
   final VoidCallback onClose;
@@ -19,10 +20,11 @@ class CriticalErrorDialog extends StatefulWidget {
   });
 
   @override
-  State<CriticalErrorDialog> createState() => _CriticalErrorDialogState();
+  ConsumerState<CriticalErrorDialog> createState() =>
+      _CriticalErrorDialogState();
 }
 
-class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
+class _CriticalErrorDialogState extends ConsumerState<CriticalErrorDialog> {
   late final ScrollController _scrollController;
 
   @override
@@ -40,7 +42,7 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const localizations = ErrorLocalizations();
+    final localizations = ref.read(universalErrorLocalizationsProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -171,11 +173,10 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                if (widget.error.details?.isNotEmpty ==
-                                    true) ...[
+                                if (widget.error.message.isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Подробности: ${widget.error.details}',
+                                    'Подробности: ${widget.error.message}',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurfaceVariant,
                                     ),
@@ -292,7 +293,6 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
                           Expanded(
                             child: FilledButton(
                               onPressed: widget.onClose,
-                              child: const Text('Закрыть'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: theme.colorScheme.error,
                                 foregroundColor: theme.colorScheme.onError,
@@ -300,6 +300,7 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
                                   vertical: 12,
                                 ),
                               ),
+                              child: const Text('Закрыть'),
                             ),
                           ),
                         ],
@@ -344,7 +345,6 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
                       // Кнопка закрытия
                       FilledButton(
                         onPressed: widget.onClose,
-                        child: const Text('Закрыть'),
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.error,
                           foregroundColor: theme.colorScheme.onError,
@@ -353,6 +353,7 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
                             vertical: 12,
                           ),
                         ),
+                        child: const Text('Закрыть'),
                       ),
                     ],
                   ),
@@ -365,12 +366,12 @@ class _CriticalErrorDialogState extends State<CriticalErrorDialog> {
   }
 
   void _copyErrorDetails(BuildContext context) {
-    const localizations = ErrorLocalizations();
+    final localizations = ref.read(universalErrorLocalizationsProvider);
     final details =
         '''
 Тип ошибки: ${localizations.getErrorTypeTitle(widget.error)}
 Сообщение: ${widget.message}
-${widget.error.details != null ? 'Подробности: ${widget.error.details}' : ''}
+${widget.error.message.isNotEmpty ? 'Подробности: ${widget.error.message}' : ''}
 Время: ${DateTime.now().toIso8601String()}
 ''';
 
@@ -386,16 +387,16 @@ ${widget.error.details != null ? 'Подробности: ${widget.error.details
 }
 
 /// Диалог для отображения подробностей ошибки
-class ErrorDetailsDialog extends StatefulWidget {
+class ErrorDetailsDialog extends ConsumerStatefulWidget {
   final AppError error;
 
   const ErrorDetailsDialog({super.key, required this.error});
 
   @override
-  State<ErrorDetailsDialog> createState() => _ErrorDetailsDialogState();
+  ConsumerState<ErrorDetailsDialog> createState() => _ErrorDetailsDialogState();
 }
 
-class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
+class _ErrorDetailsDialogState extends ConsumerState<ErrorDetailsDialog> {
   late final ScrollController _scrollController;
 
   @override
@@ -413,7 +414,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const localizations = ErrorLocalizations();
+    final localizations = ref.read(universalErrorLocalizationsProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -435,7 +436,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.surface,
-                  theme.colorScheme.surfaceVariant.withOpacity(0.7),
+                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -514,10 +515,10 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
                             theme,
                           ),
 
-                          if (widget.error.details?.isNotEmpty == true)
+                          if (widget.error.message.isNotEmpty)
                             _buildDetailSection(
                               'Подробности',
-                              widget.error.details!,
+                              widget.error.message,
                               theme,
                             ),
 
@@ -542,7 +543,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
                           ),
 
                           // Техническая информация (если есть)
-                          if (widget.error is UnknownError) ...[
+                          if (widget.error is UnknownAppError) ...[
                             const SizedBox(height: 16),
                             const Divider(),
                             const SizedBox(height: 16),
@@ -557,23 +558,17 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
 
                             const SizedBox(height: 8),
 
-                            if ((widget.error as UnknownError).originalError !=
-                                null)
-                              _buildDetailSection(
-                                'Исходная ошибка',
-                                (widget.error as UnknownError).originalError
-                                    .toString(),
-                                theme,
-                              ),
+                            _buildDetailSection(
+                              'Тип ошибки',
+                              'UnknownAppError',
+                              theme,
+                            ),
 
-                            if ((widget.error as UnknownError).stackTrace !=
-                                null)
-                              _buildDetailSection(
-                                'Стек вызовов',
-                                (widget.error as UnknownError).stackTrace
-                                    .toString(),
-                                theme,
-                              ),
+                            _buildDetailSection(
+                              'Детали',
+                              widget.error.message,
+                              theme,
+                            ),
                           ],
                         ],
                       ),
@@ -599,7 +594,6 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
                     const SizedBox(width: 8),
                     FilledButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Закрыть'),
                       style: FilledButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
@@ -612,6 +606,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      child: const Text('Закрыть'),
                     ),
                   ],
                 ),
@@ -641,7 +636,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(content, style: theme.textTheme.bodyMedium),
@@ -652,7 +647,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
   }
 
   void _copyAllDetails(BuildContext context) {
-    const localizations = ErrorLocalizations();
+    final localizations = ref.read(universalErrorLocalizationsProvider);
     final buffer = StringBuffer();
 
     buffer.writeln('=== ДЕТАЛИ ОШИБКИ ===');
@@ -661,9 +656,7 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
       'Сообщение: ${localizations.getLocalizedMessage(widget.error)}',
     );
 
-    if (widget.error.details?.isNotEmpty == true) {
-      buffer.writeln('Подробности: ${widget.error.details}');
-    }
+    buffer.writeln('Подробности: ${widget.error.message}');
 
     buffer.writeln(
       'Критичность: ${widget.error.isCritical ? 'Критическая' : 'Некритическая'}',
@@ -673,15 +666,10 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
       'Рекомендации: ${localizations.getErrorResolution(widget.error)}',
     );
 
-    if (widget.error is UnknownError) {
-      final unknownError = widget.error as UnknownError;
-      if (unknownError.originalError != null) {
-        buffer.writeln('\n=== ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯ ===');
-        buffer.writeln('Исходная ошибка: ${unknownError.originalError}');
-      }
-      if (unknownError.stackTrace != null) {
-        buffer.writeln('Стек вызовов:\n${unknownError.stackTrace}');
-      }
+    if (widget.error is UnknownAppError) {
+      buffer.writeln('\n=== ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯ ===');
+      buffer.writeln('Тип ошибки: UnknownAppError');
+      buffer.writeln('Дополнительная информация: ${widget.error.message}');
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
@@ -696,8 +684,8 @@ class _ErrorDetailsDialogState extends State<ErrorDetailsDialog> {
 }
 
 /// Содержимое для SnackBar с ошибкой
-class ErrorSnackBarContent extends StatelessWidget {
-  final AppError error;
+class ErrorSnackBarContent extends ConsumerWidget {
+  final BaseAppError error;
   final String message;
   final bool showTapHint;
 
@@ -709,8 +697,8 @@ class ErrorSnackBarContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    const localizations = ErrorLocalizations();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final localizations = ref.read(universalErrorLocalizationsProvider);
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
 
     return Container(
@@ -823,7 +811,7 @@ class ErrorSnackBarContent extends StatelessWidget {
     );
   }
 
-  IconData _getErrorIcon(AppError error) {
+  IconData _getErrorIcon(BaseAppError error) {
     return switch (error.runtimeType.toString()) {
       'AuthenticationError' => Icons.lock_outline,
       'EncryptionError' => Icons.security,
@@ -833,11 +821,14 @@ class ErrorSnackBarContent extends StatelessWidget {
       'StorageError' => Icons.folder_off,
       'SecurityError' => Icons.shield_outlined,
       'SystemError' => Icons.computer,
+      'UIError' => Icons.smartphone,
+      'BusinessError' => Icons.business,
+      'UnknownAppError' => Icons.help_outline,
       _ => Icons.error_outline,
     };
   }
 
-  Color _getErrorColor(AppError error) {
+  Color _getErrorColor(BaseAppError error) {
     return switch (error.runtimeType.toString()) {
       'AuthenticationError' => const Color(0xFF8B5CF6), // Purple
       'EncryptionError' => const Color(0xFFEF4444), // Red
@@ -847,6 +838,9 @@ class ErrorSnackBarContent extends StatelessWidget {
       'StorageError' => const Color(0xFF10B981), // Emerald
       'SecurityError' => const Color(0xFFDC2626), // Red-600
       'SystemError' => const Color(0xFF6366F1), // Indigo
+      'UIError' => const Color(0xFF8B5CF6), // Purple
+      'BusinessError' => const Color(0xFF059669), // Emerald-600
+      'UnknownAppError' => const Color(0xFF6B7280), // Gray
       _ => const Color(0xFF9CA3AF), // Gray-400
     };
   }

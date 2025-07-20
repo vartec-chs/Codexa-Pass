@@ -160,6 +160,7 @@ sealed class Result<T> {
 
 /// Успешный результат
 final class Success<T> extends Result<T> {
+  @override
   final T value;
 
   const Success(this.value);
@@ -180,6 +181,7 @@ final class Success<T> extends Result<T> {
 
 /// Неуспешный результат
 final class Failure<T> extends Result<T> {
+  @override
   final BaseAppError error;
 
   const Failure(this.error);

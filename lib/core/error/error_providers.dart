@@ -1,278 +1,128 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:codexa_pass/core/logging/app_logger.dart';
-import 'app_error.dart';
-import 'error_handler.dart';
+import 'package:codexa_pass/core/error/enhanced_app_error.dart';
+import 'package:codexa_pass/core/error/error_handler.dart';
 
-/// Расширение для автоматической обработки ошибок в Riverpod провайдерах
-extension AsyncValueErrorHandler<T> on AsyncValue<T> {
-  /// Обрабатывает ошибки в AsyncValue для Consumer виджетов
-  void handleErrorInWidget(WidgetRef ref) {
-    whenOrNull(
-      error: (error, stackTrace) {
-        final appError = _convertToAppError(error, stackTrace);
-        ref.read(errorManagerProvider.notifier).handleError(appError);
-      },
-    );
+/// Провайдер для текущего состояния ошибки
+final errorStateProvider = StateProvider<BaseAppError?>((ref) => null);
+
+/// Провайдер для списка последних ошибок
+final recentErrorsProvider = StateProvider<List<BaseAppError>>((ref) => []);
+
+/// Провайдер для счетчика критических ошибок
+final criticalErrorCountProvider = StateProvider<int>((ref) => 0);
+
+/// Провайдер для флага показа диалогов ошибок
+final showErrorDialogsProvider = StateProvider<bool>((ref) => true);
+
+/// Миксин для работы с ошибками в Riverpod
+mixin ErrorProviderMixin {
+  /// Добавляет ошибку в состояние
+  void addError(WidgetRef ref, BaseAppError error) {
+    // Устанавливаем текущую ошибку
+    ref.read(errorStateProvider.notifier).state = error;
+
+    // Добавляем к последним ошибкам
+    final recentErrors = ref.read(recentErrorsProvider);
+    final updatedErrors = [error, ...recentErrors].take(10).toList();
+    ref.read(recentErrorsProvider.notifier).state = updatedErrors;
+
+    // Увеличиваем счетчик критических ошибок
+    if (error.isCritical) {
+      ref.read(criticalErrorCountProvider.notifier).state++;
+    }
   }
 
-  /// Конвертирует исключение в AppError
-  AppError _convertToAppError(Object error, StackTrace stackTrace) {
-    // Попытка распознать тип ошибки
-    if (error is AppError) {
-      return error;
-    }
+  /// Очищает текущую ошибку
+  void clearCurrentError(WidgetRef ref) {
+    ref.read(errorStateProvider.notifier).state = null;
+  }
 
-    // Сетевые ошибки
-    if (error.toString().contains('SocketException') ||
-        error.toString().contains('HandshakeException') ||
-        error.toString().contains('TimeoutException')) {
-      return AppError.network(
-        type: NetworkErrorType.noConnection,
-        message: 'Ошибка сетевого соединения',
-        details: error.toString(),
-      );
-    }
+  /// Очищает все ошибки
+  void clearAllErrors(WidgetRef ref) {
+    ref.read(errorStateProvider.notifier).state = null;
+    ref.read(recentErrorsProvider.notifier).state = [];
+    ref.read(criticalErrorCountProvider.notifier).state = 0;
+  }
 
-    // Ошибки файловой системы
-    if (error.toString().contains('FileSystemException') ||
-        error.toString().contains('PathNotFoundException')) {
-      return AppError.storage(
-        type: StorageErrorType.fileNotFound,
-        message: 'Ошибка доступа к файлу',
-        details: error.toString(),
-      );
-    }
+  /// Обрабатывает ошибку с использованием провайдеров
+  void handleErrorWithProvider(WidgetRef ref, BaseAppError error) {
+    addError(ref, error);
 
-    // Ошибки разрешений
-    if (error.toString().contains('PermissionException') ||
-        error.toString().contains('Access denied')) {
-      return AppError.storage(
-        type: StorageErrorType.accessDenied,
-        message: 'Нет прав доступа',
-        details: error.toString(),
-      );
-    }
-
-    // Ошибки валидации форм
-    if (error.toString().contains('FormatException') ||
-        error.toString().contains('ArgumentError')) {
-      return AppError.validation(
-        type: ValidationErrorType.invalidFormat,
-        message: 'Неверный формат данных',
-        details: error.toString(),
-      );
-    }
-
-    // По умолчанию - неизвестная ошибка
-    return AppError.unknown(
-      message: 'Произошла неожиданная ошибка',
-      details: error.toString(),
-      originalError: error,
-      stackTrace: stackTrace,
-    );
+    // Используем глобальный обработчик ошибок
+    GlobalErrorHandler().handleError(error);
   }
 }
 
-/// Мixin для провайдеров с автоматической обработкой ошибок
-mixin ErrorHandlingProviderMixin {
-  /// Безопасно выполняет асинхронную операцию
-  Future<Result<T>> safeExecute<T>(
-    Future<T> Function() operation, {
-    String? context,
-  }) async {
-    try {
-      final result = await operation();
-      return Success(result);
-    } catch (error, stackTrace) {
-      final appError = _convertToAppError(error, stackTrace, context);
-      AppLogger.instance.error(
-        'Error in ${context ?? 'operation'}',
-        error,
-        stackTrace,
-      );
-      return Failure(appError);
-    }
-  }
-
-  /// Безопасно выполняет синхронную операцию
-  Result<T> safeExecuteSync<T>(T Function() operation, {String? context}) {
-    try {
-      final result = operation();
-      return Success(result);
-    } catch (error, stackTrace) {
-      final appError = _convertToAppError(error, stackTrace, context);
-      AppLogger.instance.error(
-        'Error in ${context ?? 'operation'}',
-        error,
-        stackTrace,
-      );
-      return Failure(appError);
-    }
-  }
-
-  AppError _convertToAppError(
-    Object error,
-    StackTrace stackTrace,
-    String? context,
-  ) {
-    if (error is AppError) {
-      return error;
-    }
-
-    final errorString = error.toString().toLowerCase();
-
-    // Анализируем контекст для более точного определения типа ошибки
-    if (context != null) {
-      final contextLower = context.toLowerCase();
-
-      if (contextLower.contains('auth') || contextLower.contains('login')) {
-        return AppError.authentication(
-          type: AuthenticationErrorType.invalidCredentials,
-          message: 'Ошибка аутентификации',
-          details: error.toString(),
-        );
-      }
-
-      if (contextLower.contains('encrypt') ||
-          contextLower.contains('decrypt')) {
-        return AppError.encryption(
-          type: EncryptionErrorType.encryptionFailed,
-          message: 'Ошибка шифрования',
-          details: error.toString(),
-        );
-      }
-
-      if (contextLower.contains('database') || contextLower.contains('db')) {
-        return AppError.database(
-          type: DatabaseErrorType.queryFailed,
-          message: 'Ошибка базы данных',
-          details: error.toString(),
-        );
-      }
-    }
-
-    // Анализируем сообщение об ошибке
-    if (errorString.contains('socket') || errorString.contains('network')) {
-      return AppError.network(
-        type: NetworkErrorType.noConnection,
-        message: 'Ошибка сетевого соединения',
-        details: error.toString(),
-      );
-    }
-
-    if (errorString.contains('timeout')) {
-      return AppError.network(
-        type: NetworkErrorType.timeout,
-        message: 'Превышено время ожидания',
-        details: error.toString(),
-      );
-    }
-
-    if (errorString.contains('permission') ||
-        errorString.contains('access denied')) {
-      return AppError.system(
-        type: SystemErrorType.permissionDenied,
-        message: 'Нет необходимых разрешений',
-        details: error.toString(),
-      );
-    }
-
-    if (errorString.contains('memory') || errorString.contains('outofmemory')) {
-      return AppError.system(
-        type: SystemErrorType.outOfMemory,
-        message: 'Недостаточно памяти',
-        details: error.toString(),
-        isCritical: true,
-      );
-    }
-
-    if (errorString.contains('space') || errorString.contains('disk full')) {
-      return AppError.system(
-        type: SystemErrorType.diskFull,
-        message: 'Недостаточно места на диске',
-        details: error.toString(),
-      );
-    }
-
-    // По умолчанию
-    return AppError.unknown(
-      message: 'Произошла неожиданная ошибка',
-      details: error.toString(),
-      originalError: error,
-      stackTrace: stackTrace,
-    );
-  }
+/// Консьюмер виджет с автоматической обработкой ошибок
+abstract class ErrorAwareConsumerWidget extends ConsumerWidget
+    with ErrorProviderMixin {
+  const ErrorAwareConsumerWidget({super.key});
 }
 
-/// Провайдер для отслеживания состояния ошибок приложения
-final appErrorStateProvider = StateProvider<List<AppError>>((ref) => []);
+/// Консьюмер StatefulWidget с автоматической обработкой ошибок
+abstract class ErrorAwareConsumerStatefulWidget extends ConsumerStatefulWidget
+    with ErrorProviderMixin {
+  const ErrorAwareConsumerStatefulWidget({super.key});
+}
 
-/// Провайдер для получения последней ошибки
-final lastErrorProvider = Provider<AppError?>((ref) {
-  final errors = ref.watch(appErrorStateProvider);
-  return errors.isNotEmpty ? errors.last : null;
-});
-
-/// Провайдер для получения критических ошибок
-final criticalErrorsProvider = Provider<List<AppError>>((ref) {
-  final errors = ref.watch(appErrorStateProvider);
-  return errors.where((error) => error.isCritical).toList();
-});
-
-/// Провайдер для получения некритических ошибок
-final nonCriticalErrorsProvider = Provider<List<AppError>>((ref) {
-  final errors = ref.watch(appErrorStateProvider);
-  return errors.where((error) => !error.isCritical).toList();
-});
+/// Состояние с автоматической обработкой ошибок
+abstract class ErrorAwareConsumerState<T extends ConsumerStatefulWidget>
+    extends ConsumerState<T>
+    with ErrorProviderMixin {
+  /// Обрабатывает ошибку в контексте данного состояния
+  void handleError(BaseAppError error) {
+    handleErrorWithProvider(ref, error);
+  }
+}
 
 /// Утилиты для работы с ошибками в провайдерах
 class ErrorProviderUtils {
-  /// Создает провайдер с автоматической обработкой ошибок
-  static Provider<AsyncValue<T>> withErrorHandling<T>(
-    Provider<AsyncValue<T>> provider,
+  /// Создает провайдер для конвертации ошибок
+  static Provider<BaseAppError> createErrorConverter<T>(
+    T Function() action,
+    BaseAppError Function(dynamic error) converter,
   ) {
-    return Provider<AsyncValue<T>>((ref) {
-      final asyncValue = ref.watch(provider);
-      asyncValue.handleErrorInWidget(ref as WidgetRef);
-      return asyncValue;
-    });
-  }
-
-  /// Создает FutureProvider с автоматической обработкой ошибок
-  static FutureProvider<T> futureWithErrorHandling<T>(
-    Future<T> Function(FutureProviderRef<T> ref) create, {
-    String? context,
-  }) {
-    return FutureProvider<T>((ref) async {
+    return Provider<BaseAppError>((ref) {
       try {
-        return await create(ref);
-      } catch (error, stackTrace) {
-        final appError = _convertToAppError(error, stackTrace, context);
-        // Не можем использовать errorManagerProvider здесь, так как ref не WidgetRef
-        AppLogger.instance.error(
-          'Error in provider${context != null ? ' ($context)' : ''}',
-          error,
-          stackTrace,
+        action();
+        // Если действие выполнилось успешно, возвращаем простую "успешную" ошибку
+        return UIError.widgetBuildFailed(
+          'SUCCESS',
+          'Operation completed successfully',
         );
-        rethrow;
+      } catch (error) {
+        return converter(error);
       }
     });
   }
 
-  static AppError _convertToAppError(
-    Object error,
-    StackTrace stackTrace,
-    String? context,
+  /// Создает Future провайдер с обработкой ошибок
+  static FutureProvider<T> createSafeFutureProvider<T>(
+    Future<T> Function() action,
+    BaseAppError Function(dynamic error) errorConverter,
   ) {
-    if (error is AppError) {
-      return error;
-    }
+    return FutureProvider<T>((ref) async {
+      try {
+        return await action();
+      } catch (error) {
+        final appError = errorConverter(error);
+        ref.read(errorStateProvider.notifier).state = appError;
+        throw appError;
+      }
+    });
+  }
 
-    return AppError.unknown(
-      message: 'Ошибка в провайдере${context != null ? ' ($context)' : ''}',
-      details: error.toString(),
-      originalError: error,
-      stackTrace: stackTrace,
-    );
+  /// Создает Stream провайдер с обработкой ошибок
+  static StreamProvider<T> createSafeStreamProvider<T>(
+    Stream<T> Function() streamFactory,
+    BaseAppError Function(dynamic error) errorConverter,
+  ) {
+    return StreamProvider<T>((ref) {
+      return streamFactory().handleError((error) {
+        final appError = errorConverter(error);
+        ref.read(errorStateProvider.notifier).state = appError;
+        throw appError;
+      });
+    });
   }
 }

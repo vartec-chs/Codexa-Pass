@@ -129,6 +129,8 @@ class ErrorExamples {
 
 /// Пример виджета с обработкой ошибок
 class ErrorHandlerWidget extends StatefulWidget {
+  const ErrorHandlerWidget({super.key});
+
   @override
   _ErrorHandlerWidgetState createState() => _ErrorHandlerWidgetState();
 }

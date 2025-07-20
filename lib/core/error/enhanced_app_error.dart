@@ -183,22 +183,15 @@ class AuthenticationError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   AuthenticationError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.authentication,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок аутентификации
@@ -233,21 +226,15 @@ class EncryptionError extends AppError {
   CrashType get crashReportType => CrashType.fatal;
 
   EncryptionError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.encryption,
-         technicalDetails: technicalDetails,
-         context: context,
          isCritical: true,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок шифрования
@@ -278,22 +265,15 @@ class DatabaseError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   DatabaseError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.database,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок базы данных
@@ -326,22 +306,15 @@ class NetworkError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   NetworkError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.network,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы сетевых ошибок
@@ -375,22 +348,16 @@ class ValidationError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   ValidationError({
-    required String code,
-    required String message,
+    required super.code,
+    required super.message,
     this.field,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    Object? originalError,
-    StackTrace? stackTrace,
+    super.technicalDetails,
+    super.context,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.validation,
-         technicalDetails: technicalDetails,
-         context: context,
          isCritical: false,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок валидации
@@ -430,22 +397,15 @@ class StorageError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   StorageError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.storage,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок хранилища
@@ -478,21 +438,15 @@ class SecurityError extends AppError {
   CrashType get crashReportType => CrashType.fatal;
 
   SecurityError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.security,
-         technicalDetails: technicalDetails,
-         context: context,
          isCritical: true,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок безопасности
@@ -525,21 +479,15 @@ class SystemError extends AppError {
   CrashType get crashReportType => CrashType.fatal;
 
   SystemError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.system,
-         technicalDetails: technicalDetails,
-         context: context,
          isCritical: true,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы системных ошибок
@@ -572,22 +520,15 @@ class UIError extends AppError {
   CrashType get crashReportType => CrashType.flutter;
 
   UIError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.ui,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы ошибок UI
@@ -621,22 +562,15 @@ class BusinessError extends AppError {
   CrashType get crashReportType => CrashType.custom;
 
   BusinessError({
-    required String code,
-    required String message,
-    String? technicalDetails,
-    Map<String, dynamic>? context,
-    bool isCritical = false,
-    Object? originalError,
-    StackTrace? stackTrace,
+    required super.code,
+    required super.message,
+    super.technicalDetails,
+    super.context,
+    super.isCritical,
+    super.originalError,
+    super.stackTrace,
   }) : super(
-         code: code,
-         message: message,
          category: ErrorCategory.business,
-         technicalDetails: technicalDetails,
-         context: context,
-         isCritical: isCritical,
-         originalError: originalError,
-         stackTrace: stackTrace,
        );
 
   /// Предопределенные типы бизнес-ошибок
