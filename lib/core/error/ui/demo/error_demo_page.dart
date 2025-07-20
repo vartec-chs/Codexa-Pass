@@ -423,6 +423,9 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+
+    // Показываем SnackBar для некритических ошибок
+    _showErrorSnackBar(error, Colors.purple);
   }
 
   void _simulateNetworkError() {
@@ -442,6 +445,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.orange);
   }
 
   void _simulateAuthError() {
@@ -460,6 +464,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.red);
   }
 
   void _simulateValidationError() {
@@ -478,6 +483,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.amber);
   }
 
   void _simulateCryptoError() {
@@ -498,6 +504,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.indigo);
   }
 
   void _simulateSerializationError() {
@@ -517,6 +524,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.teal);
   }
 
   void _simulateSecurityError() {
@@ -538,6 +546,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.red.shade800);
   }
 
   void _simulateSystemError() {
@@ -558,6 +567,75 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
+    _showErrorSnackBar(error, Colors.grey);
+  }
+
+  // Вспомогательный метод для показа SnackBar
+  void _showErrorSnackBar(AppError error, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(_getErrorIcon(error.severity), color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    error.userFriendlyMessage,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Code: ${error.code}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Details',
+          textColor: Colors.white,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('${error.severity.name.toUpperCase()} Error'),
+                content: SingleChildScrollView(
+                  child: Text(error.detailedMessage),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  IconData _getErrorIcon(ErrorSeverity severity) {
+    switch (severity) {
+      case ErrorSeverity.info:
+        return Icons.info;
+      case ErrorSeverity.warning:
+        return Icons.warning;
+      case ErrorSeverity.error:
+        return Icons.error;
+      case ErrorSeverity.critical:
+        return Icons.dangerous;
+      case ErrorSeverity.fatal:
+        return Icons.block;
+    }
   }
 
   // UI демонстрации
@@ -574,7 +652,29 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => CriticalErrorDialog(error: error),
+      builder: (context) => CriticalErrorDialog(
+        error: error,
+        onExit: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'App exit simulated (would close app in production)',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Navigator.of(context).pop();
+        },
+        onRestart: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('App restart simulated'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          Navigator.of(context).pop();
+        },
+      ),
     );
   }
 
@@ -589,7 +689,21 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
 
     showDialog(
       context: context,
-      builder: (context) => ErrorReportDialog(error: error),
+      builder: (context) => ErrorReportDialog(
+        error: error,
+        onSend: (comment) {
+          // Симулируем отправку
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Error report sent${comment != null ? ' with comment' : ''}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+        onCancel: () => Navigator.of(context).pop(),
+      ),
     );
   }
 
@@ -615,14 +729,43 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
   }
 
   void _throwWidgetError() {
-    // Симулируем ошибку в виджете, которая будет поймана ErrorBoundary
-    throw BaseAppError(
+    // Создаем ошибку и передаем в ErrorController вместо throw
+    final error = BaseAppError(
       code: 'UI_WIDGET_RENDERING_FAILED',
       message: 'Widget rendering failed',
       severity: ErrorSeverity.error,
       timestamp: DateTime.now(),
       module: 'UI',
       metadata: {'widget': 'ErrorDemoButton', 'renderPhase': 'build'},
+    );
+
+    // Обрабатываем ошибку через систему
+    ref.read(errorControllerProvider).handleError(error);
+
+    // Показываем уведомление
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Widget error simulated: ${error.message}'),
+        backgroundColor: Colors.purple,
+        action: SnackBarAction(
+          label: 'Details',
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Widget Error Details'),
+                content: Text(error.detailedMessage),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

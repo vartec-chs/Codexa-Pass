@@ -11,12 +11,14 @@ class CriticalErrorDialog extends StatelessWidget {
     this.onRetry,
     this.onRestart,
     this.onContact,
+    this.onExit,
   }) : super(key: key);
 
   final AppError error;
   final VoidCallback? onRetry;
   final VoidCallback? onRestart;
   final VoidCallback? onContact;
+  final VoidCallback? onExit;
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +61,19 @@ class CriticalErrorDialog extends StatelessWidget {
             icon: const Icon(Icons.restart_alt),
             label: const Text('Перезапустить'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
+              backgroundColor: Colors.orange.shade600,
               foregroundColor: Colors.white,
             ),
           ),
+        ElevatedButton.icon(
+          onPressed: onExit ?? () => SystemNavigator.pop(),
+          icon: const Icon(Icons.close),
+          label: const Text('Закрыть приложение'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.shade600,
+            foregroundColor: Colors.white,
+          ),
+        ),
       ],
     );
   }
@@ -223,7 +234,10 @@ class _ErrorReportDialogState extends State<ErrorReportDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: widget.onCancel, child: const Text('Отмена')),
+        TextButton(
+          onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
         ElevatedButton.icon(
           onPressed: () {
             widget.onSend?.call(
@@ -231,6 +245,7 @@ class _ErrorReportDialogState extends State<ErrorReportDialog> {
                   ? null
                   : _commentController.text.trim(),
             );
+            Navigator.of(context).pop();
           },
           icon: const Icon(Icons.send),
           label: const Text('Отправить'),
@@ -331,6 +346,7 @@ Future<void> showCriticalErrorDialog(
   VoidCallback? onRetry,
   VoidCallback? onRestart,
   VoidCallback? onContact,
+  VoidCallback? onExit,
 }) {
   return showDialog(
     context: context,
@@ -340,6 +356,7 @@ Future<void> showCriticalErrorDialog(
       onRetry: onRetry,
       onRestart: onRestart,
       onContact: onContact,
+      onExit: onExit,
     ),
   );
 }

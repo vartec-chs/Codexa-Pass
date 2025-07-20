@@ -291,6 +291,16 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
+              onPressed: () => _showErrorDemo(),
+              icon: const Icon(Icons.error_outline),
+              label: const Text('Error System Demo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
               onPressed: () => _showLoggingDemo(),
               icon: const Icon(Icons.play_arrow),
               label: const Text('View Logging Demo'),
