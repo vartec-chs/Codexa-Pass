@@ -55,6 +55,7 @@ class ErrorQueueController {
   /// Статистика обработки
   Map<String, dynamic> get statistics => {
     'queueSize': queueSize,
+    'totalProcessed': _processedErrorsCount,
     'processedCount': _processedErrorsCount,
     'droppedCount': _droppedErrorsCount,
     'lastProcessedTime': _lastProcessedTime?.toIso8601String(),

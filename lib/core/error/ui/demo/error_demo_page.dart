@@ -16,6 +16,43 @@ class ErrorDemoPage extends ConsumerStatefulWidget {
 
 class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
   final Random _random = Random();
+  final List<Timer> _activeTimers = [];
+  final List<OverlayEntry> _activeOverlays = [];
+
+  // Выбор типа уведомления
+  String _selectedNotificationType = 'snackbar';
+  final List<String> _notificationTypes = [
+    'snackbar',
+    'toast',
+    'modal',
+    'topbar',
+    'inline',
+  ];
+
+  // Inline error display
+  AppError? _inlineError;
+  Color? _inlineErrorColor;
+
+  @override
+  void dispose() {
+    // Отменяем все активные таймеры
+    for (final timer in _activeTimers) {
+      if (timer.isActive) {
+        timer.cancel();
+      }
+    }
+    _activeTimers.clear();
+
+    // Убираем все активные overlay
+    for (final overlay in _activeOverlays) {
+      if (overlay.mounted) {
+        overlay.remove();
+      }
+    }
+    _activeOverlays.clear();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +71,10 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
+              const SizedBox(height: 20),
+              _buildNotificationTypeSelector(),
+              const SizedBox(height: 20),
+              _buildInlineErrorDisplay(),
               const SizedBox(height: 20),
               _buildErrorMetrics(errorController),
               const SizedBox(height: 20),
@@ -84,6 +125,88 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildNotificationTypeSelector() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Notification Type',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Choose how error notifications are displayed:',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _notificationTypes.map((type) {
+                final isSelected = type == _selectedNotificationType;
+                return ChoiceChip(
+                  label: Text(_getNotificationTypeName(type)),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _selectedNotificationType = type;
+                      });
+                    }
+                  },
+                  selectedColor: Colors.blue.shade200,
+                  avatar: Icon(
+                    _getNotificationTypeIcon(type),
+                    size: 18,
+                    color: isSelected ? Colors.blue.shade700 : Colors.grey,
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getNotificationTypeName(String type) {
+    switch (type) {
+      case 'snackbar':
+        return 'SnackBar';
+      case 'toast':
+        return 'Toast';
+      case 'modal':
+        return 'Modal Dialog';
+      case 'topbar':
+        return 'Top Banner';
+      case 'inline':
+        return 'Inline Message';
+      default:
+        return type;
+    }
+  }
+
+  IconData _getNotificationTypeIcon(String type) {
+    switch (type) {
+      case 'snackbar':
+        return Icons.horizontal_rule;
+      case 'toast':
+        return Icons.bubble_chart;
+      case 'modal':
+        return Icons.open_in_new;
+      case 'topbar':
+        return Icons.keyboard_arrow_down;
+      case 'inline':
+        return Icons.insert_comment;
+      default:
+        return Icons.notification_important;
+    }
   }
 
   Widget _buildErrorMetrics(ErrorController errorController) {
@@ -424,8 +547,8 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
 
     ref.read(errorControllerProvider).handleError(error);
 
-    // Показываем SnackBar для некритических ошибок
-    _showErrorSnackBar(error, Colors.purple);
+    // Показываем уведомление выбранного типа
+    _showErrorNotification(error, Colors.purple);
   }
 
   void _simulateNetworkError() {
@@ -445,7 +568,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.orange);
+    _showErrorNotification(error, Colors.orange);
   }
 
   void _simulateAuthError() {
@@ -464,7 +587,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.red);
+    _showErrorNotification(error, Colors.red);
   }
 
   void _simulateValidationError() {
@@ -483,7 +606,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.amber);
+    _showErrorNotification(error, Colors.amber);
   }
 
   void _simulateCryptoError() {
@@ -504,7 +627,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.indigo);
+    _showErrorNotification(error, Colors.indigo);
   }
 
   void _simulateSerializationError() {
@@ -524,7 +647,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.teal);
+    _showErrorNotification(error, Colors.teal);
   }
 
   void _simulateSecurityError() {
@@ -546,7 +669,7 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.red.shade800);
+    _showErrorNotification(error, Colors.red.shade800);
   }
 
   void _simulateSystemError() {
@@ -567,11 +690,35 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
     );
 
     ref.read(errorControllerProvider).handleError(error);
-    _showErrorSnackBar(error, Colors.grey);
+    _showErrorNotification(error, Colors.grey);
   }
 
-  // Вспомогательный метод для показа SnackBar
+  // Универсальный метод для показа уведомлений
+  void _showErrorNotification(AppError error, Color color) {
+    switch (_selectedNotificationType) {
+      case 'snackbar':
+        _showErrorSnackBar(error, color);
+        break;
+      case 'toast':
+        _showErrorToast(error, color);
+        break;
+      case 'modal':
+        _showErrorModal(error, color);
+        break;
+      case 'topbar':
+        _showErrorTopBar(error, color);
+        break;
+      case 'inline':
+        _showErrorInline(error, color);
+        break;
+      default:
+        _showErrorSnackBar(error, color);
+    }
+  } // Вспомогательный метод для показа SnackBar
+
   void _showErrorSnackBar(AppError error, Color color) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -601,26 +748,238 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
         action: SnackBarAction(
           label: 'Details',
           textColor: Colors.white,
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('${error.severity.name.toUpperCase()} Error'),
-                content: SingleChildScrollView(
-                  child: Text(error.detailedMessage),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            );
-          },
+          onPressed: () => _showErrorDetails(error),
         ),
       ),
     );
+  }
+
+  void _showErrorToast(AppError error, Color color) {
+    if (!mounted) return;
+
+    // Имитация toast уведомления через overlay
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _getErrorIcon(error.severity),
+                  color: Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        error.code,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        error.message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                  onPressed: () {
+                    overlayEntry.remove();
+                    _activeOverlays.remove(overlayEntry);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    _activeOverlays.add(overlayEntry);
+
+    // Автоматически убираем через 4 секунды
+    final timer = Timer(const Duration(seconds: 4), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+        _activeOverlays.remove(overlayEntry);
+      }
+    });
+    _activeTimers.add(timer);
+  }
+
+  void _showErrorModal(AppError error, Color color) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(_getErrorIcon(error.severity), color: color, size: 32),
+        title: Text(error.code, style: TextStyle(color: color)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(error.message),
+            const SizedBox(height: 16),
+            Text(
+              'Тип: ${error.severity.name}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Text(
+              'Время: ${error.timestamp.toString().split('.')[0]}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Закрыть'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showErrorDetails(error);
+            },
+            child: const Text('Детали'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorTopBar(AppError error, Color color) {
+    if (!mounted) return;
+
+    // Имитация топ-бара через overlay
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: Material(
+          color: color,
+          child: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    _getErrorIcon(error.severity),
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          error.code,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          error.message,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    onPressed: () {
+                      overlayEntry.remove();
+                      _activeOverlays.remove(overlayEntry);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    _activeOverlays.add(overlayEntry);
+
+    // Автоматически убираем через 5 секунд
+    final timer = Timer(const Duration(seconds: 5), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+        _activeOverlays.remove(overlayEntry);
+      }
+    });
+    _activeTimers.add(timer);
+  }
+
+  void _showErrorInline(AppError error, Color color) {
+    if (!mounted) return;
+
+    setState(() {
+      _inlineError = error;
+      _inlineErrorColor = color;
+    });
+
+    // Убираем inline ошибку через 6 секунд
+    final timer = Timer(const Duration(seconds: 6), () {
+      if (mounted) {
+        setState(() {
+          _inlineError = null;
+          _inlineErrorColor = null;
+        });
+      }
+    });
+    _activeTimers.add(timer);
   }
 
   IconData _getErrorIcon(ErrorSeverity severity) {
@@ -635,6 +994,178 @@ class _ErrorDemoPageState extends ConsumerState<ErrorDemoPage> {
         return Icons.dangerous;
       case ErrorSeverity.fatal:
         return Icons.block;
+    }
+  }
+
+  Widget _buildInlineErrorDisplay() {
+    if (_inlineError == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _inlineErrorColor?.withOpacity(0.1),
+        border: Border.all(color: _inlineErrorColor ?? Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _getErrorIcon(_inlineError!.severity),
+            color: _inlineErrorColor,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _inlineError!.code,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _inlineErrorColor,
+                  ),
+                ),
+                Text(
+                  _inlineError!.message,
+                  style: TextStyle(color: _inlineErrorColor?.withOpacity(0.8)),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: _inlineErrorColor),
+            onPressed: () {
+              if (mounted) {
+                setState(() {
+                  _inlineError = null;
+                  _inlineErrorColor = null;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDetails(AppError error) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              _getErrorIcon(error.severity),
+              color: _getSeverityColor(error.severity),
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Детали ошибки',
+                style: TextStyle(
+                  color: _getSeverityColor(error.severity),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailRow('Код', error.code),
+              _buildDetailRow('Сообщение', error.message),
+              _buildDetailRow('Уровень', error.severity.name.toUpperCase()),
+              _buildDetailRow(
+                'Время',
+                error.timestamp.toString().split('.')[0],
+              ),
+              if (error.module != null)
+                _buildDetailRow('Модуль', error.module!),
+              if (error.metadata?.isNotEmpty == true) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Метаданные:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...error.metadata!.entries.map(
+                  (entry) => _buildDetailRow(entry.key, entry.value.toString()),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Закрыть'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Копировать в буфер обмена
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Детали ошибки скопированы в буфер обмена'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Копировать'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getSeverityColor(ErrorSeverity severity) {
+    switch (severity) {
+      case ErrorSeverity.info:
+        return Colors.blue;
+      case ErrorSeverity.warning:
+        return Colors.orange;
+      case ErrorSeverity.error:
+        return Colors.red;
+      case ErrorSeverity.critical:
+        return Colors.red.shade800;
+      case ErrorSeverity.fatal:
+        return Colors.red.shade900;
     }
   }
 
