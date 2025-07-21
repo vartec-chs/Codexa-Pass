@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:codexa_pass/app/theme/widgets/theme_switcher.dart';
 import 'package:codexa_pass/generated/l10n.dart';
 import 'package:codexa_pass/core/logging/logging.dart';
 import 'package:codexa_pass/core/error/error_system.dart';
@@ -279,6 +280,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
               "Welcome to Codexa Pass",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            ThemeSwitcher(),
             const SizedBox(height: 20),
             const Text(
               "Your secure password manager with advanced logging",
