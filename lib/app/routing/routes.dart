@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:go_transitions/go_transitions.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_platform/universal_platform.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -11,15 +12,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     observers: [GoTransition.observer],
     redirect: (context, state) async {
-      return null;
+      final prefs = await SharedPreferences.getInstance();
+      final isFirstRun = prefs.getBool('is_first_run') ?? true;
 
-      // final prefs = await SharedPreferences.getInstance();
-      // final isFirstRun = prefs.getBool('is_first_run') ?? true;
-      // if (isFirstRun) {
-      //   await prefs.setBool('is_first_run', false);
-      //   return WelcomeScreen.routePath;
-      // }
-      // return null;
+      // Если это первый запуск и пользователь не на setup экране
+      if (isFirstRun && state.fullPath != '/setup') {
+        return '/setup';
+      }
+
+      // Если настройка завершена и пользователь на setup экране
+      if (!isFirstRun && state.fullPath == '/setup') {
+        return '/';
+      }
+
+      return null;
     },
     routes: UniversalPlatform.isDesktop
         ? [
