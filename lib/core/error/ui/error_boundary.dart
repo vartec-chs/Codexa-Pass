@@ -12,12 +12,12 @@ import 'error_widgets/error_display_widget.dart';
 /// Error Boundary для перехвата ошибок в виджетах
 class ErrorBoundary extends ConsumerStatefulWidget {
   const ErrorBoundary({
-    Key? key,
+    super.key,
     required this.child,
     this.onError,
     this.fallbackBuilder,
     this.enableLogging = true,
-  }) : super(key: key);
+  });
 
   final Widget child;
   final void Function(AppError error)? onError;
@@ -136,7 +136,7 @@ class _ErrorBoundaryState extends ConsumerState<ErrorBoundary> {
 
 /// Глобальный Error Boundary для всего приложения
 class GlobalErrorBoundary extends ConsumerWidget {
-  const GlobalErrorBoundary({Key? key, required this.child}) : super(key: key);
+  const GlobalErrorBoundary({super.key, required this.child});
 
   final Widget child;
 
@@ -172,10 +172,9 @@ class GlobalErrorBoundary extends ConsumerWidget {
 /// Экран для фатальных ошибок
 class _FatalErrorScreen extends StatelessWidget {
   const _FatalErrorScreen({
-    Key? key,
     required this.error,
     required this.onRetry,
-  }) : super(key: key);
+  });
 
   final AppError error;
   final VoidCallback onRetry;

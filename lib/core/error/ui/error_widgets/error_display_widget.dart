@@ -8,12 +8,12 @@ import '../../models/error_display_type.dart';
 /// Виджет для отображения ошибок пользователю
 class ErrorDisplayWidget extends StatelessWidget {
   const ErrorDisplayWidget({
-    Key? key,
+    super.key,
     required this.error,
     this.onRetry,
     this.onDismiss,
     this.showDetails = true,
-  }) : super(key: key);
+  });
 
   final AppError error;
   final VoidCallback? onRetry;

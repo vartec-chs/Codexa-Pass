@@ -6,13 +6,13 @@ import '../../models/app_error.dart';
 /// Диалог для критических ошибок
 class CriticalErrorDialog extends StatelessWidget {
   const CriticalErrorDialog({
-    Key? key,
+    super.key,
     required this.error,
     this.onRetry,
     this.onRestart,
     this.onContact,
     this.onExit,
-  }) : super(key: key);
+  });
 
   final AppError error;
   final VoidCallback? onRetry;
@@ -132,11 +132,11 @@ class CriticalErrorDialog extends StatelessWidget {
 /// Диалог подтверждения отправки отчета об ошибке
 class ErrorReportDialog extends StatefulWidget {
   const ErrorReportDialog({
-    Key? key,
+    super.key,
     required this.error,
     this.onSend,
     this.onCancel,
-  }) : super(key: key);
+  });
 
   final AppError error;
   final Function(String? userComment)? onSend;
@@ -264,12 +264,12 @@ class _ErrorReportDialogState extends State<ErrorReportDialog> {
 /// Диалог выбора действия для восстановления
 class ErrorRecoveryDialog extends StatelessWidget {
   const ErrorRecoveryDialog({
-    Key? key,
+    super.key,
     required this.error,
     this.onRetry,
     this.onIgnore,
     this.onRestart,
-  }) : super(key: key);
+  });
 
   final AppError error;
   final VoidCallback? onRetry;

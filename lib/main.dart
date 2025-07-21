@@ -144,6 +144,8 @@ Future<void> _initializeErrorHandling(ProviderContainer container) async {
 }
 
 class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
@@ -164,7 +166,7 @@ class MyApp extends ConsumerWidget {
 }
 
 class MyHomePage extends ConsumerStatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
   ConsumerState<MyHomePage> createState() => _MyHomePageState();
@@ -384,7 +386,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage>
 
 /// Демонстрационная страница для показа возможностей логгирования
 class LoggingDemoPage extends ConsumerStatefulWidget {
-  const LoggingDemoPage({Key? key}) : super(key: key);
+  const LoggingDemoPage({super.key});
 
   @override
   ConsumerState<LoggingDemoPage> createState() => _LoggingDemoPageState();

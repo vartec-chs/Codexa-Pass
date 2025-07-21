@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:codexa_pass/core/logging/logging.dart';
 import 'package:intl/intl.dart';
-import '../interfaces/logging_interfaces.dart';
-import '../models/log_entry.dart';
 
 /// Красивый форматтер для консольного вывода
 class PrettyConsoleFormatter implements LogFormatter {

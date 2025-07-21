@@ -275,7 +275,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
 
 /// Consumer widget с автоматической обработкой ошибок
 class SafeConsumerWidget extends ConsumerWidget {
-  const SafeConsumerWidget({Key? key}) : super(key: key);
+  const SafeConsumerWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

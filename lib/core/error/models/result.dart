@@ -119,6 +119,7 @@ sealed class Result<T, E> {
 final class Success<T, E> extends Result<T, E> {
   const Success(this.value);
 
+  @override
   final T value;
 
   @override
@@ -134,6 +135,7 @@ final class Success<T, E> extends Result<T, E> {
 final class Failure<T, E> extends Result<T, E> {
   const Failure(this.error);
 
+  @override
   final E error;
 
   @override

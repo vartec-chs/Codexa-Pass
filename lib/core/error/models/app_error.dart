@@ -166,6 +166,7 @@ abstract class AppError {
   }
 
   /// Хеш-код для сравнения
+  @override
   int get hashCode {
     return Object.hash(id, code, message, severity, module);
   }

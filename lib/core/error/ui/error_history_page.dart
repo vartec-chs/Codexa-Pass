@@ -7,7 +7,7 @@ import '../models/error_severity.dart';
 
 /// Страница с историей ошибок для просмотра деталей
 class ErrorHistoryPage extends ConsumerWidget {
-  const ErrorHistoryPage({Key? key}) : super(key: key);
+  const ErrorHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

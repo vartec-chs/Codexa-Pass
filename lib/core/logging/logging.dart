@@ -13,7 +13,7 @@
 /// - Краш репортов
 /// - Интеграции с Riverpod
 
-library codexa_logging;
+library;
 
 // Основные модели
 export 'models/log_level.dart';

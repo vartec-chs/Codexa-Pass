@@ -5,11 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../error_system.dart';
-import '../error_history_page.dart';
 
 /// Демонстрационная страница для показа возможностей системы обработки ошибок
 class ErrorDemoPage extends ConsumerStatefulWidget {
-  const ErrorDemoPage({Key? key}) : super(key: key);
+  const ErrorDemoPage({super.key});
 
   @override
   ConsumerState<ErrorDemoPage> createState() => _ErrorDemoPageState();
