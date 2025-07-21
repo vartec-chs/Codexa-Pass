@@ -16,7 +16,7 @@ part 'credentials_database.g.dart';
 
 @DriftDatabase(tables: [DatabaseMetadataTable])
 class CredentialsDatabase extends _$CredentialsDatabase {
-  CredentialsDatabase._internal(QueryExecutor e) : super(e);
+  CredentialsDatabase._internal(super.e);
 
   // Singleton pattern
   static CredentialsDatabase? _instance;

@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/analytics_event.dart';
 import '../models/user_models.dart';
-import '../models/analytics_metrics.dart';
 
 /// Абстрактный интерфейс для хранения данных аналитики
 abstract class AnalyticsStorage {

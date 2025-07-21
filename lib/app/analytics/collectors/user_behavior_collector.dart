@@ -439,19 +439,19 @@ class UserBehaviorCollector {
     // Простой алгоритм определения уровня вовлеченности
     int score = 0;
 
-    if (_averageSessionDuration > 5)
+    if (_averageSessionDuration > 5) {
       score += 2;
-    else if (_averageSessionDuration > 2)
+    } else if (_averageSessionDuration > 2)
       score += 1;
 
-    if (_totalSessions > 20)
+    if (_totalSessions > 20) {
       score += 2;
-    else if (_totalSessions > 5)
+    } else if (_totalSessions > 5)
       score += 1;
 
-    if (_featureUsage.length > 10)
+    if (_featureUsage.length > 10) {
       score += 2;
-    else if (_featureUsage.length > 5)
+    } else if (_featureUsage.length > 5)
       score += 1;
 
     if (_passwordsCreated > 10) score += 1;

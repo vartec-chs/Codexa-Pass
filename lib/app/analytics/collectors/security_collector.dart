@@ -439,12 +439,15 @@ class SecurityCollector {
 
   String _getSecurityCategory(String eventType) {
     if (eventType.contains('password')) return 'password_security';
-    if (eventType.contains('auth') || eventType.contains('login'))
+    if (eventType.contains('auth') || eventType.contains('login')) {
       return 'authentication';
-    if (eventType.contains('breach') || eventType.contains('suspicious'))
+    }
+    if (eventType.contains('breach') || eventType.contains('suspicious')) {
       return 'threat_detection';
-    if (eventType.contains('two_factor') || eventType.contains('2fa'))
+    }
+    if (eventType.contains('two_factor') || eventType.contains('2fa')) {
       return 'multi_factor_auth';
+    }
     return 'general';
   }
 
