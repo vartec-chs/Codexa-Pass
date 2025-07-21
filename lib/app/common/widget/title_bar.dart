@@ -1,5 +1,6 @@
 import 'package:codexa_pass/app/theme/theme_provider.dart';
 import 'package:codexa_pass/app/theme/widgets.dart';
+import 'package:codexa_pass/core/config/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,12 +16,8 @@ class TitleBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeNotifier = ref.read(themeProvider.notifier);
-    // final dbNotifier = ref.read(databaseNotifierProvider.notifier);
-    // final dbState = ref.read(databaseNotifierProvider);
-
     final currentTheme = ref.watch(themeProvider);
-    final isDark = currentTheme == ThemeMode.dark;
+
     return DragToMoveArea(
       child: Container(
         height: 40,
@@ -31,7 +28,7 @@ class TitleBar extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: Text(
-                'ObsidiKey - Password Manager',
+                AppConstants.appName,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
@@ -64,19 +61,21 @@ class TitleBar extends ConsumerWidget {
                   //   constraints: constraints,
                   //   onPressed: () => themeNotifier.toggleTheme(),
                   // ),
-                  ThemeSwitcher(),
+                  ThemeSwitcher(size: 26),
+                  const SizedBox(width: 4),
                   IconButton(
+                    padding: const EdgeInsets.all(6),
                     icon: Icon(Icons.remove, size: 20),
                     tooltip: 'Свернуть',
                     constraints: constraints,
-                    onPressed: () async => await windowManager.minimize(),
+                    onPressed: () => windowManager.minimize(),
                   ),
                   IconButton(
                     padding: const EdgeInsets.all(6),
                     tooltip: 'Развернуть',
                     constraints: constraints,
                     icon: Icon(Icons.minimize, size: 20),
-                    onPressed: () async => await windowManager.maximize(),
+                    onPressed: () => windowManager.maximize(),
                   ),
                   IconButton(
                     padding: const EdgeInsets.all(6),
@@ -84,10 +83,10 @@ class TitleBar extends ConsumerWidget {
                     hoverColor: Colors.red,
                     constraints: constraints,
                     icon: Icon(Icons.close, size: 20),
-                    onPressed: () async => {
+                    onPressed: () => {
                       // if (dbState.runtimeType.toString() == '_Connected')
                       // {await dbNotifier.closeDatabase()},
-                      await windowManager.close(),
+                      windowManager.close(),
                     },
                   ),
                 ],

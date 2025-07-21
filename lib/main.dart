@@ -1,32 +1,94 @@
 import 'dart:async';
 
 import 'package:codexa_pass/app.dart';
-import 'package:codexa_pass/core/logging/logging.dart';
-import 'package:codexa_pass/core/error/error_system.dart';
+import 'package:codexa_pass/app/window_manager/window_manager.dart';
+
 import 'package:codexa_pass/core/error/global_error_handler.dart';
-import 'package:flutter/material.dart';
+import 'package:codexa_pass/core/error/utils/error_config.dart';
+import 'package:codexa_pass/core/logging/logging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+import 'package:universal_platform/universal_platform.dart';
+
+import 'package:sqlite3/open.dart';
+
+Future<void> setupSqlCipher() async {
+  await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
+  open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
+}
 
 Future<void> main() async {
+  if (UniversalPlatform.isWeb) {
+    throw UnsupportedError('This platform is not supported by this app.');
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Инициализируем систему логгирования
-  await _initializeLogging();
+  await initializeLogging();
+
+  await WindowManager.initialize();
+
+  await setupSqlCipher();
 
   // Настраиваем observer для автоматического логирования состояний Riverpod
   final container = ProviderContainer(observers: [LoggingProviderObserver()]);
 
-  // Логируем запуск приложения
-  AppLifecycleLogger.logAppStart();
+  // Инициализируем систему обработки ошибок
+  await _initializeErrorHandling(container);
 
-  // Запускаем приложение с обработкой ошибок
-  runAppWithErrorHandling(
-    UncontrolledProviderScope(
-      container: container,
-      child: WrapperApp(container: container),
-    ),
-    errorConfig: const ErrorConfig(
+  runApp(UncontrolledProviderScope(container: container, child: WrapperApp()));
+}
+
+Future<void> initializeLogging() async {
+  // Создаем конфигурацию для разных сред
+  final config = LoggerConfig(
+    minLevel: const bool.fromEnvironment('dart.vm.product')
+        ? LogLevel.info
+        : LogLevel.debug,
+    enableConsole: true,
+    enableFile: true,
+    enableCrashReports: const bool.fromEnvironment('dart.vm.product'),
+    maxFileSizeMB: 100,
+    maxFileAgeDays: 30,
+    enablePrettyPrint: true,
+    enableColors: !const bool.fromEnvironment('dart.vm.product'),
+    enableMetadata: true,
+    maskSensitiveData: true,
+    // Включаем только определенные модули в продакшене
+    enabledModules: const bool.fromEnvironment('dart.vm.product')
+        ? {'Auth', 'Encryption', 'Storage'}
+        : null,
+    // Настраиваем уровни для модулей
+    moduleLogLevels: {
+      'Auth': LogLevel.info,
+      'Encryption': LogLevel.warning,
+      'Debug': LogLevel.debug,
+    },
+  );
+
+  // Инициализируем логгер
+  await AppLogger.instance.initialize(config: config);
+
+  AppLogger.setupGlobalErrorHandling();
+
+  // Логируем успешную инициализацию
+  await AppLogger.instance.info(
+    'Logging system initialized',
+    metadata: {
+      'environment': const bool.fromEnvironment('dart.vm.product')
+          ? 'production'
+          : 'development',
+      'sessionId': AppLogger.instance.sessionId,
+    },
+  );
+}
+
+Future<void> _initializeErrorHandling(ProviderContainer container) async {
+  try {
+    // Создаем конфигурацию системы ошибок
+    const errorConfig = ErrorConfig(
       showErrorDetails: kDebugMode,
       enableErrorReporting: kReleaseMode,
       enableCrashReporting: kReleaseMode,
@@ -54,54 +116,21 @@ Future<void> main() async {
           autoRecoveryStrategy: 'fallback',
         ),
       },
-    ),
-    container: container,
-  );
-}
-
-/// Инициализация системы логгирования
-Future<void> _initializeLogging() async {
-  try {
-    // Создаем конфигурацию в зависимости от режима сборки
-    final config = LoggerConfig(
-      minLevel: kDebugMode ? LogLevel.debug : LogLevel.info,
-      enableConsole: true,
-      enableFile: true,
-      enableCrashReports: kReleaseMode, // Только в release режиме
-      maxFileSizeMB: 100,
-      maxFileAgeDays: 30,
-      enablePrettyPrint: kDebugMode,
-      enableColors: kDebugMode,
-      enableMetadata: true,
-      maskSensitiveData: true,
-      // В продакшене логируем только критичные модули
-      enabledModules: kReleaseMode
-          ? {'Auth', 'Database', 'Network', 'Security', 'Error'}
-          : null,
-      // Настраиваем уровни для модулей
-      moduleLogLevels: {
-        'Network': LogLevel.info,
-        'Auth': LogLevel.warning,
-        'Security': LogLevel.error,
-      },
     );
 
-    // Инициализируем логгер
-    await AppLogger.instance.initialize(config: config);
+    // Инициализируем глобальный обработчик ошибок
+    await GlobalErrorHandler.initialize(
+      config: errorConfig,
+      container: container,
+    );
 
-    // Логируем успешную инициализацию
     await AppLogger.instance.info(
-      'Codexa Pass started successfully',
+      'Error handling system initialized successfully',
       logger: 'Main',
-      metadata: {
-        'version': '1.0.0',
-        'buildMode': kDebugMode ? 'debug' : 'release',
-        'platform': 'flutter',
-      },
+      metadata: {'errorConfig': errorConfig.toJson()},
     );
   } catch (e, stackTrace) {
-    // Если логгер не удалось инициализировать, выводим в консоль
-    debugPrint('Failed to initialize logging system: $e');
+    debugPrint('Failed to initialize error handling system: $e');
     debugPrint('StackTrace: $stackTrace');
   }
 }

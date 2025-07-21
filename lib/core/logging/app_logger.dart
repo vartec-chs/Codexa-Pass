@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'package:codexa_pass/core/utils/path.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'models/log_entry.dart';
 import 'models/log_level.dart';
@@ -386,5 +389,52 @@ class AppLogger {
     await _logSubscription.cancel();
 
     _isInitialized = false;
+  }
+
+  /// Настройка глобальных обработчиков ошибок
+  static void setupGlobalErrorHandling() {
+    // Обработка ошибок Flutter framework
+    FlutterError.onError = (FlutterErrorDetails details) {
+      instance.fatal(
+        'Flutter Error: ${details.exceptionAsString()}',
+        logger: 'Flutter',
+        module: 'framework',
+        error: details.exception,
+        stackTrace: details.stack,
+        metadata: {
+          'library': details.library,
+          'context': details.context?.toString(),
+          'informationCollector': details.informationCollector?.toString(),
+        },
+      );
+    };
+
+    // Обработка ошибок в основном изоляте
+    PlatformDispatcher.instance.onError = (error, stack) {
+      instance.fatal(
+        'Platform Error: ${error.toString()}',
+        logger: 'Platform',
+        module: 'isolate',
+        error: error,
+        stackTrace: stack,
+      );
+      return true;
+    };
+
+    // Обработка необработанных ошибок в изолятах
+    Isolate.current.addErrorListener(
+      RawReceivePort((pair) async {
+        final List<dynamic> errorAndStacktrace = pair;
+        await instance.fatal(
+          'Isolate Error: ${errorAndStacktrace.first}',
+          logger: 'Isolate',
+          module: 'isolate',
+          error: errorAndStacktrace.first,
+          stackTrace: errorAndStacktrace.length > 1
+              ? StackTrace.fromString(errorAndStacktrace.last.toString())
+              : null,
+        );
+      }).sendPort,
+    );
   }
 }

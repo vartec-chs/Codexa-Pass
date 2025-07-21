@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'theme.dart';
+// import 'theme.dart';
 
 /// Провайдер для управления темой приложения
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
@@ -9,14 +9,14 @@ final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
 });
 
 /// Провайдер для получения светлой темы
-final lightThemeProvider = Provider<ThemeData>((ref) {
-  return AppTheme.lightTheme;
-});
+// final lightThemeProvider = Provider<ThemeData>((ref) {
+//   return AppTheme.lightTheme;
+// });
 
-/// Провайдер для получения темной темы
-final darkThemeProvider = Provider<ThemeData>((ref) {
-  return AppTheme.darkTheme;
-});
+// /// Провайдер для получения темной темы
+// final darkThemeProvider = Provider<ThemeData>((ref) {
+//   return AppTheme.darkTheme;
+// });
 
 /// Провайдер для проверки, активна ли темная тема
 final isDarkThemeProvider = Provider<bool>((ref) {
