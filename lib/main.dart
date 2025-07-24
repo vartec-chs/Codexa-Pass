@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:codexa_pass/app.dart';
 import 'package:codexa_pass/app/window_manager/window_manager.dart';
@@ -24,21 +25,34 @@ Future<void> main() async {
     throw UnsupportedError('This platform is not supported by this app.');
   }
 
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  await initializeLogging();
+      await initializeLogging();
 
-  await WindowManager.initialize();
+      await WindowManager.initialize();
 
-  await setupSqlCipher();
+      await setupSqlCipher();
 
-  // Настраиваем observer для автоматического логирования состояний Riverpod
-  final container = ProviderContainer(observers: [LoggingProviderObserver()]);
+      // Настраиваем observer для автоматического логирования состояний Riverpod
+      final container = ProviderContainer(
+        observers: [LoggingProviderObserver()],
+      );
 
-  // Инициализируем систему обработки ошибок
-  await _initializeErrorHandling(container);
-
-  runApp(UncontrolledProviderScope(container: container, child: WrapperApp()));
+      // Инициализируем систему обработки ошибок
+      await _initializeErrorHandling(container);
+      runApp(
+        UncontrolledProviderScope(container: container, child: WrapperApp()),
+      );
+    },
+    (e, stackTrace) {
+      AppLogger.instance.fatal(
+        'Uncaught error in zone',
+        metadata: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+      );
+    },
+  );
 }
 
 Future<void> initializeLogging() async {
@@ -130,7 +144,9 @@ Future<void> _initializeErrorHandling(ProviderContainer container) async {
       metadata: {'errorConfig': errorConfig.toJson()},
     );
   } catch (e, stackTrace) {
-    debugPrint('Failed to initialize error handling system: $e');
-    debugPrint('StackTrace: $stackTrace');
+    AppLogger.instance.fatal(
+      'Failed to initialize error handling system',
+      metadata: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+    );
   }
 }

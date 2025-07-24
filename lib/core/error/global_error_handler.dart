@@ -59,7 +59,7 @@ class GlobalErrorHandler {
       originalOnError?.call(details);
 
       // Создаем AppError
-      final error = BaseAppError(
+      final error = BaseAppError( 
         code: 'FLUTTER_ERROR',
         message: details.exception.toString(),
         severity: details.silent ? ErrorSeverity.warning : ErrorSeverity.error,
